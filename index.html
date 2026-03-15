@@ -4,927 +4,598 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#BA7517">
-<title>Fleet Prestart</title>
+<title>Vehicle Prestart</title>
 <link rel="manifest" href="/manifest.json">
 <style>
 :root{
-  --bg:#fff;--bg2:#f6f5f1;--bg3:#eeedea;
-  --tx:#1c1c1a;--tx2:#6b6b68;--tx3:#9e9e9b;
-  --bd:rgba(0,0,0,0.09);--bd2:rgba(0,0,0,0.18);
+  --bg:#fff;--bg2:#f5f4f0;--bg3:#eeedea;
+  --tx:#1a1a18;--tx2:#666663;--tx3:#999996;
+  --bd:rgba(0,0,0,0.1);--bd2:rgba(0,0,0,0.2);
   --r:8px;--rl:12px;
   --accent:#BA7517;
-  --ok-bg:#e6f5ee;--ok-tx:#0d5a33;--ok-bd:#9FE1CB;
-  --warn-bg:#fdf0d8;--warn-tx:#5a3800;--warn-bd:#FAC775;
-  --fail-bg:#faeaea;--fail-tx:#5a1010;--fail-bd:#F09595;
+  --ok-bg:#e4f4ec;--ok-tx:#0c5430;--ok-bd:#86d3a8;
+  --warn-bg:#fdf0d8;--warn-tx:#5a3800;--warn-bd:#f5c842;
+  --fail-bg:#fbeaea;--fail-tx:#5a1010;--fail-bd:#e8a0a0;
 }
 @media(prefers-color-scheme:dark){:root{
-  --bg:#1c1c1a;--bg2:#252522;--bg3:#2f2f2c;
-  --tx:#f0efe8;--tx2:#999992;--tx3:#666660;
-  --bd:rgba(255,255,255,0.09);--bd2:rgba(255,255,255,0.18);
-  --ok-bg:#0a2418;--ok-tx:#5DCAA5;--ok-bd:#085041;
-  --warn-bg:#2a1e05;--warn-tx:#FAC775;--warn-bd:#633806;
-  --fail-bg:#28100e;--fail-tx:#F09595;--fail-bd:#501313;
+  --bg:#1a1a18;--bg2:#242420;--bg3:#2e2e2a;
+  --tx:#f0efe8;--tx2:#99998f;--tx3:#66665e;
+  --bd:rgba(255,255,255,0.1);--bd2:rgba(255,255,255,0.2);
+  --ok-bg:#08200f;--ok-tx:#5ecb8a;--ok-bd:#0d5430;
+  --warn-bg:#271d04;--warn-tx:#f5c842;--warn-bd:#6b4a00;
+  --fail-bg:#260c0c;--fail-tx:#e8a0a0;--fail-bd:#5a1010;
 }}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;background:var(--bg3)}
+html,body{min-height:100%;background:var(--bg3)}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:var(--tx);font-size:15px;line-height:1.5}
-input,textarea,select,button{font-family:inherit;font-size:14px;color:var(--tx)}
-.app{max-width:600px;margin:0 auto;padding-bottom:48px;min-height:100vh;background:var(--bg3)}
-.nav{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg);border-bottom:0.5px solid var(--bd);position:sticky;top:0;z-index:100;gap:10px}
-.nav-brand{display:flex;align-items:center;gap:8px;flex-shrink:0}
-.nav-badge{background:var(--accent);color:#fff;font-size:9px;letter-spacing:.12em;padding:2px 7px;border-radius:4px;font-weight:600}
-.nav-title{font-weight:600;font-size:14px;letter-spacing:.04em}
-.nav-tabs{display:flex;gap:4px}
-.ntab{padding:6px 11px;border:0.5px solid var(--bd);border-radius:20px;background:transparent;color:var(--tx2);font-size:12px;cursor:pointer}
-.ntab.on{background:var(--bg2);color:var(--tx);border-color:var(--bd2)}
-.sync-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
-.sync-ok{background:#1D9E75}.sync-pend{background:#CF8C00}.sync-off{background:#aaa}
-.auth{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:85vh;gap:18px;padding:40px 24px;text-align:center}
-.auth-sup{font-size:11px;letter-spacing:.14em;color:var(--tx3);font-weight:600}
-.auth-h{font-size:30px;font-weight:700;letter-spacing:.02em}
-.auth-sub{font-size:13px;color:var(--tx2)}
-.auth-input{width:100%;max-width:300px;padding:12px 16px;border:0.5px solid var(--bd2);border-radius:var(--r);background:var(--bg);color:var(--tx);font-size:15px;text-align:center;outline:none}
-.auth-input:focus{border-color:var(--accent)}
-.abtn{width:100%;max-width:300px;padding:13px;background:var(--accent);color:#fff;border:none;border-radius:var(--r);font-size:12px;letter-spacing:.1em;font-weight:700;cursor:pointer}
-.abtn:disabled{opacity:.35;cursor:default}
-.abtn-ghost{width:100%;max-width:300px;padding:12px;background:transparent;border:0.5px solid var(--bd2);border-radius:var(--r);color:var(--tx2);font-size:12px;letter-spacing:.06em;cursor:pointer}
-.field{display:flex;flex-direction:column;gap:4px;margin-bottom:10px}
-.flabel{font-size:10px;letter-spacing:.1em;color:var(--tx3);font-weight:600}
-.finput{padding:9px 12px;border:0.5px solid var(--bd2);border-radius:var(--r);background:var(--bg2);color:var(--tx);outline:none;font-size:13px;width:100%}
-.finput:focus{border-color:var(--accent)}
-.finput.mono{font-family:monospace;font-size:12px}
-.page{padding:16px}
-.slabel{font-size:10px;letter-spacing:.12em;color:var(--tx3);font-weight:600;margin-bottom:10px;display:block}
-.back{background:transparent;border:none;color:var(--tx3);font-size:12px;letter-spacing:.06em;padding:0;margin-bottom:12px;cursor:pointer;display:flex;align-items:center;gap:5px}
-.empty{text-align:center;padding:40px 20px;font-size:13px;color:var(--tx3)}
-.v-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.v-card{background:var(--bg);border:0.5px solid var(--bd);border-radius:var(--rl);padding:14px;cursor:pointer}
-.v-card:hover{border-color:var(--bd2)}
-.v-id{font-size:22px;font-weight:700;letter-spacing:.04em}
-.v-model{font-size:11px;color:var(--tx2);margin-top:2px}
-.v-km{font-size:11px;color:var(--tx3);margin-top:8px}
-.badge{font-size:10px;display:inline-block;padding:2px 8px;border-radius:4px;margin-top:6px;font-weight:600}
-.badge-ok{background:var(--ok-bg);color:var(--ok-tx)}
-.badge-warn{background:var(--warn-bg);color:var(--warn-tx)}
-.badge-fail{background:var(--fail-bg);color:var(--fail-tx)}
-.card{background:var(--bg);border:0.5px solid var(--bd);border-radius:var(--rl);overflow:hidden}
-.card-p{padding:14px 16px}
-.form-hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px}
-.fh-id{font-size:24px;font-weight:700;letter-spacing:.04em}
-.fh-date{text-align:right;font-size:11px;color:var(--tx2)}
-.fh-date strong{display:block;font-size:13px;color:var(--tx);margin-top:2px}
-.issues-banner{background:var(--fail-bg);border:0.5px solid var(--fail-bd);border-radius:var(--r);padding:12px 14px;margin-bottom:10px}
-.ib-title{font-size:10px;letter-spacing:.1em;color:var(--fail-tx);font-weight:700;margin-bottom:8px}
-.ib-row{display:flex;flex-wrap:wrap;gap:5px;align-items:center;padding:6px 0;border-top:0.5px solid var(--fail-bd)}
-.ib-cat{font-size:9px;background:var(--fail-bd);color:var(--fail-tx);padding:2px 6px;border-radius:3px;font-weight:700}
-.ib-lbl{font-size:13px;color:var(--fail-tx);flex:1}
-.ib-since{font-size:10px;color:var(--fail-tx);opacity:.7}
-.ib-note{width:100%;font-size:12px;color:var(--fail-tx);opacity:.8;padding-top:2px}
-.odo-box{background:var(--bg);border:0.5px solid var(--bd);border-radius:var(--r);padding:12px 14px;margin-bottom:10px}
-.odo-lbl{font-size:10px;letter-spacing:.1em;color:var(--tx3);font-weight:600;margin-bottom:5px}
-.odo-in{width:100%;padding:8px 0;border:none;border-bottom:1.5px solid var(--bd2);background:transparent;font-size:24px;font-weight:700;color:var(--tx);outline:none}
+button,input,textarea,select{font-family:inherit;font-size:15px;color:var(--tx)}
+
+.wrap{max-width:560px;margin:0 auto;padding:0 0 60px}
+
+/* header */
+.hdr{background:var(--bg);border-bottom:0.5px solid var(--bd);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
+.hdr-brand{display:flex;align-items:center;gap:8px}
+.hdr-pill{background:var(--accent);color:#fff;font-size:9px;font-weight:700;letter-spacing:.12em;padding:2px 7px;border-radius:4px}
+.hdr-title{font-size:14px;font-weight:600;letter-spacing:.04em}
+.hdr-right{display:flex;align-items:center;gap:8px}
+.sync-dot{width:7px;height:7px;border-radius:50%}
+.s-ok{background:#2da866}.s-pend{background:#CF8C00}.s-off{background:#aaa}
+.offline-bar{background:var(--warn-bg);border-bottom:0.5px solid var(--warn-bd);padding:8px 16px;font-size:12px;color:var(--warn-tx);text-align:center}
+
+/* vehicle picker */
+.picker{padding:20px 16px 0}
+.pick-label{font-size:10px;letter-spacing:.12em;color:var(--tx3);font-weight:600;margin-bottom:8px;display:block}
+.pick-select{width:100%;padding:14px 16px;background:var(--bg);border:0.5px solid var(--bd2);border-radius:var(--rl);font-size:18px;font-weight:600;color:var(--tx);appearance:none;-webkit-appearance:none;outline:none;cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center}
+.pick-select:focus{border-color:var(--accent)}
+.pick-meta{display:flex;gap:12px;margin-top:8px;flex-wrap:wrap}
+.pick-meta-item{font-size:12px;color:var(--tx2);background:var(--bg);border:0.5px solid var(--bd);border-radius:6px;padding:4px 10px}
+.pick-meta-item strong{color:var(--tx);font-weight:600}
+
+/* prev comments */
+.prev-box{margin:14px 16px 0;background:var(--warn-bg);border:0.5px solid var(--warn-bd);border-radius:var(--r);padding:12px 14px}
+.prev-title{font-size:10px;letter-spacing:.1em;color:var(--warn-tx);font-weight:700;margin-bottom:8px}
+.prev-row{font-size:13px;color:var(--warn-tx);padding:5px 0;border-top:0.5px solid var(--warn-bd);display:flex;gap:8px;align-items:flex-start}
+.prev-row:first-of-type{border-top:none}
+.prev-cat{font-size:9px;background:var(--warn-bd);color:var(--warn-tx);padding:2px 6px;border-radius:3px;font-weight:700;flex-shrink:0;margin-top:2px}
+
+/* section */
+.section{padding:16px 16px 0}
+.sec-label{font-size:10px;letter-spacing:.12em;color:var(--tx3);font-weight:600;margin-bottom:10px;display:block}
+.sec-rule{font-size:11px;border-radius:var(--r);padding:7px 11px;margin-bottom:10px;line-height:1.5}
+
+/* odo row */
+.odo-card{background:var(--bg);border:0.5px solid var(--bd);border-radius:var(--r);padding:12px 14px;margin-bottom:0}
+.odo-lbl{font-size:10px;letter-spacing:.1em;color:var(--tx3);font-weight:600;margin-bottom:4px}
+.odo-row{display:flex;align-items:baseline;gap:6px}
+.odo-in{flex:1;padding:6px 0;border:none;border-bottom:2px solid var(--bd2);background:transparent;font-size:26px;font-weight:700;color:var(--tx);outline:none;width:100%}
 .odo-in:focus{border-bottom-color:var(--accent)}
-.prog{margin-bottom:10px}
-.prog-bar{height:4px;background:var(--bd);border-radius:2px;overflow:hidden}
-.prog-fill{height:100%;background:var(--accent);border-radius:2px;transition:width .3s}
-.prog-txt{font-size:10px;color:var(--tx3);text-align:right;margin-top:3px}
-.cat-tabs{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px}
-.ctab{padding:6px 10px;border:0.5px solid var(--bd);border-radius:20px;background:transparent;color:var(--tx2);font-size:11px;cursor:pointer}
-.ctab.on{background:var(--bg2);color:var(--tx);border-color:var(--bd2)}
-.ctab.fail{border-color:var(--fail-bd);color:var(--fail-tx)}
-.ctab.done{border-color:var(--ok-bd);color:var(--ok-tx)}
-.cat-banner{border-radius:var(--r);padding:8px 12px;margin-bottom:10px;font-size:11px;line-height:1.5}
-.checklist{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
-.ci{background:var(--bg);border:0.5px solid var(--bd);border-radius:var(--r);padding:10px 12px}
+.odo-prev{font-size:12px;color:var(--tx3);white-space:nowrap}
+
+/* name row */
+.name-card{background:var(--bg);border:0.5px solid var(--bd);border-radius:var(--r);padding:12px 14px;margin-top:10px}
+.name-in{width:100%;padding:6px 0;border:none;border-bottom:2px solid var(--bd2);background:transparent;font-size:17px;color:var(--tx);outline:none}
+.name-in:focus{border-bottom-color:var(--accent)}
+.name-in::placeholder{color:var(--tx3)}
+
+/* checklist */
+.checklist{display:flex;flex-direction:column;gap:6px}
+.ci{background:var(--bg);border:0.5px solid var(--bd);border-radius:var(--r);padding:10px 12px;transition:border-color .1s,background .1s}
 .ci.pass{border-color:var(--ok-bd);background:var(--ok-bg)}
 .ci.fail{border-color:var(--fail-bd);background:var(--fail-bg)}
-.ci.na{opacity:.5}
-.ci-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
-.ci-lbl{font-size:14px;flex:1}
+.ci.na{opacity:.45}
+.ci-row{display:flex;align-items:center;gap:8px}
+.ci-lbl{flex:1;font-size:14px;line-height:1.3}
 .ci.pass .ci-lbl{color:var(--ok-tx)}
 .ci.fail .ci-lbl{color:var(--fail-tx)}
 .ci-fire{color:var(--fail-tx);font-weight:700}
 .ci-btns{display:flex;gap:5px;flex-shrink:0}
-.ck{width:44px;height:44px;border-radius:var(--r);border:0.5px solid var(--bd2);background:var(--bg2);color:var(--tx2);font-size:18px;display:flex;align-items:center;justify-content:center;cursor:pointer}
-.ck.p{background:#1D9E75;border-color:#1D9E75;color:#fff}
-.ck.f{background:#C94520;border-color:#C94520;color:#fff}
+.ck{width:46px;height:46px;border-radius:var(--r);border:0.5px solid var(--bd2);background:var(--bg2);color:var(--tx3);font-size:19px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
+.ck.p{background:#1d9e63;border-color:#1d9e63;color:#fff}
+.ck.f{background:#c94520;border-color:#c94520;color:#fff}
 .ck.n{background:var(--tx2);border-color:var(--tx2);color:#fff;font-size:11px;font-weight:700}
-.ci-comment{width:100%;margin-top:8px;padding:7px 10px;border:0.5px solid var(--bd2);border-radius:var(--r);background:var(--bg2);color:var(--tx);font-size:13px;outline:none;resize:vertical;min-height:48px}
-.sbmt{width:100%;padding:15px;background:var(--accent);color:#fff;border:none;border-radius:var(--r);font-size:12px;letter-spacing:.1em;font-weight:700;cursor:pointer}
-.sbmt:disabled{opacity:.35;cursor:default}
-.sbox{display:flex;flex-direction:column;align-items:center;padding:60px 20px;gap:14px;text-align:center}
-.s-icon{width:56px;height:56px;background:var(--ok-bg);border-radius:50%;display:flex;align-items:center;justify-content:center}
-.s-title{font-size:20px;font-weight:700;color:var(--ok-tx)}
-.s-sub{font-size:13px;color:var(--tx2)}
-.offline-banner{background:var(--warn-bg);border:0.5px solid var(--warn-bd);border-radius:var(--r);padding:9px 14px;margin:0 16px 10px;font-size:12px;color:var(--warn-tx);text-align:center}
-.alert-strip{background:var(--warn-bg);border:0.5px solid var(--warn-bd);border-radius:var(--r);padding:10px 14px;margin-bottom:12px;font-size:12px;color:var(--warn-tx);display:flex;align-items:center;gap:8px}
-.dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
-.dc{background:var(--bg);border:0.5px solid var(--bd);border-radius:var(--rl);padding:14px;cursor:pointer}
-.dc:hover{border-color:var(--bd2)}
-.dc-id{font-size:20px;font-weight:700;letter-spacing:.04em;margin-bottom:1px}
-.dc-model{font-size:10px;color:var(--tx3);margin-bottom:10px}
-.dc-stats{display:flex;gap:10px;flex-wrap:wrap}
-.ds-lbl{font-size:9px;letter-spacing:.08em;color:var(--tx3);font-weight:600}
-.ds-val{font-size:16px;font-weight:700}
-.ds-issues{color:var(--fail-tx)}
-.dh{background:var(--bg);border:0.5px solid var(--bd);border-radius:var(--rl);padding:14px 16px;margin-bottom:10px}
-.dh-id{font-size:26px;font-weight:700;letter-spacing:.04em}
-.dh-model{font-size:12px;color:var(--tx2);margin-bottom:10px}
-.dh-meta{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--tx2)}
-.dh-meta strong{color:var(--tx);font-weight:600}
-.tabs{display:flex;gap:5px;margin-bottom:12px}
-.tbtn{padding:7px 13px;border:0.5px solid var(--bd);border-radius:20px;background:transparent;color:var(--tx2);font-size:12px;cursor:pointer;position:relative}
-.tbtn.on{background:var(--bg2);color:var(--tx);border-color:var(--bd2)}
-.tb-badge{position:absolute;top:-5px;right:-5px;background:#C94520;color:#fff;border-radius:10px;font-size:9px;padding:1px 4px;font-weight:700;min-width:16px;text-align:center}
-.chart-wrap{background:var(--bg);border:0.5px solid var(--bd);border-radius:var(--rl);padding:14px;margin-bottom:10px}
-.chart-title{font-size:10px;letter-spacing:.1em;color:var(--tx3);font-weight:600;margin-bottom:12px}
-.info-card{background:var(--bg);border:0.5px solid var(--bd);border-radius:var(--rl);overflow:hidden;margin-bottom:10px}
-.ir{display:flex;justify-content:space-between;padding:9px 14px;border-bottom:0.5px solid var(--bd);font-size:13px}
-.ir:last-child{border-bottom:none}
-.ik{color:var(--tx2)}
-.iv{font-weight:600}
-.issue-card{background:var(--bg);border:0.5px solid var(--fail-bd);border-radius:var(--r);padding:12px 14px;margin-bottom:8px}
-.issue-card.resolved{opacity:.4;border-color:var(--bd)}
-.ic-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px}
-.ic-lbl{font-size:14px;font-weight:600;margin-top:4px}
-.ic-desc{font-size:13px;color:var(--tx2);margin-bottom:4px}
-.ic-meta{font-size:11px;color:var(--tx3)}
-.resolve-btn{background:var(--ok-bg);color:var(--ok-tx);border:0.5px solid var(--ok-bd);border-radius:6px;padding:6px 10px;font-size:10px;letter-spacing:.06em;font-weight:700;white-space:nowrap;cursor:pointer;flex-shrink:0}
-.resolved-tick{font-size:10px;color:var(--ok-tx);font-weight:600}
-.add-btn{width:100%;padding:11px;background:transparent;border:0.5px solid var(--bd2);border-radius:var(--r);color:var(--accent);font-size:11px;letter-spacing:.1em;font-weight:700;cursor:pointer;margin-bottom:10px}
-.svc-form{background:var(--bg);border:0.5px solid var(--bd);border-radius:var(--rl);padding:14px;margin-bottom:10px}
-.svc-save{width:100%;padding:11px;background:var(--accent);color:#fff;border:none;border-radius:var(--r);font-size:11px;letter-spacing:.1em;font-weight:700;cursor:pointer;margin-top:4px}
-.svc-card{background:var(--bg);border:0.5px solid var(--bd);border-radius:var(--rl);padding:14px;margin-bottom:8px}
-.svc-hdr{display:flex;justify-content:space-between;margin-bottom:4px}
-.svc-date{font-size:14px;font-weight:600}
-.svc-km{font-size:14px;color:var(--accent);font-weight:700}
-.svc-tech{font-size:11px;color:var(--tx3);margin-bottom:8px}
-.svc-sect{border-left:2px solid var(--ok-bd);padding-left:10px;margin-top:8px}
-.svc-sect.pend{border-color:var(--warn-bd)}
-.svc-sect-lbl{font-size:9px;letter-spacing:.1em;color:var(--ok-tx);font-weight:700;margin-bottom:2px}
-.svc-sect.pend .svc-sect-lbl{color:var(--warn-tx)}
-.svc-sect-txt{font-size:13px;color:var(--tx2)}
-.add-v-form{background:var(--bg);border:0.5px solid var(--bd);border-radius:var(--rl);padding:14px;margin-bottom:14px}
-.color-row{display:flex;gap:8px;flex-wrap:wrap}
-.color-swatch{width:28px;height:28px;border-radius:50%;cursor:pointer;border:2px solid transparent}
-.color-swatch.sel{border-color:var(--tx)}
+.ci-note{width:100%;margin-top:7px;padding:7px 10px;border:0.5px solid var(--bd2);border-radius:var(--r);background:var(--bg2);color:var(--tx);font-size:13px;outline:none;resize:vertical;min-height:46px}
+.ci-note:focus{border-color:var(--accent)}
+
+/* cat header */
+.cat-hdr{display:flex;align-items:center;gap:8px;padding:16px 0 8px}
+.cat-pill{font-size:10px;font-weight:700;letter-spacing:.08em;padding:3px 9px;border-radius:4px}
+.cat-name{font-size:13px;font-weight:600;color:var(--tx2)}
+.cat-rule-a{color:var(--fail-tx);font-size:11px}
+.cat-rule-b{color:var(--warn-tx);font-size:11px}
+.cat-rule-c{color:var(--ok-tx);font-size:11px}
+
+/* general comment */
+.gen-ta{width:100%;padding:12px 14px;border:0.5px solid var(--bd2);border-radius:var(--r);background:var(--bg);color:var(--tx);font-size:14px;outline:none;resize:vertical;min-height:80px;line-height:1.5}
+.gen-ta:focus{border-color:var(--accent)}
+.gen-ta::placeholder{color:var(--tx3)}
+
+/* progress */
+.prog-wrap{position:sticky;bottom:0;background:var(--bg3);padding:12px 16px;border-top:0.5px solid var(--bd)}
+.prog-bar{height:4px;background:var(--bd);border-radius:2px;overflow:hidden;margin-bottom:10px}
+.prog-fill{height:100%;background:var(--accent);border-radius:2px;transition:width .25s}
+.submit-btn{width:100%;padding:15px;background:var(--accent);color:#fff;border:none;border-radius:var(--r);font-size:13px;font-weight:700;letter-spacing:.1em;cursor:pointer}
+.submit-btn:disabled{opacity:.35;cursor:default}
+
+/* done screen */
+.done{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:80vh;gap:16px;padding:40px 24px;text-align:center}
+.done-icon{width:64px;height:64px;background:var(--ok-bg);border-radius:50%;display:flex;align-items:center;justify-content:center}
+.done-title{font-size:22px;font-weight:700;color:var(--ok-tx)}
+.done-sub{font-size:13px;color:var(--tx2);line-height:1.6}
+.done-another{margin-top:8px;padding:12px 24px;background:transparent;border:0.5px solid var(--bd2);border-radius:var(--r);color:var(--tx2);font-size:13px;cursor:pointer}
+
+/* already done */
+.already{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:12px;padding:40px 24px;text-align:center}
+.already-title{font-size:18px;font-weight:600;color:var(--tx)}
+.already-sub{font-size:13px;color:var(--tx2)}
+.already-btn{padding:12px 24px;background:transparent;border:0.5px solid var(--bd2);border-radius:var(--r);color:var(--tx2);font-size:13px;cursor:pointer}
 </style>
 </head>
 <body>
-<div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;color:var(--tx3);font-size:13px">Loading...</div></div>
+<div class="wrap" id="root">
+  <div style="display:flex;align-items:center;justify-content:center;height:80vh;color:var(--tx3);font-size:13px">Loading...</div>
+</div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
 <script>
-// ── CONFIGURATION ── swap these two lines with your Supabase values ──
+// ── CONFIG ──────────────────────────────────────────────
 var SUPABASE_URL = 'https://gcnnictyxwxwtahmgidq.supabase.co';
 var SUPABASE_KEY = 'sb_publishable_WVOZIN8HnFgldl4_wkoHvQ_EYLPplKo';
-var SUPERVISOR_PIN = '1111';
-// ─────────────────────────────────────────────────────────────────────
+// ────────────────────────────────────────────────────────
 
-var IDB=(function(){
-  var _db=null;
+var _sb = null;
+
+// ── INDEXEDDB ────────────────────────────────────────────
+var IDB = (function(){
+  var _db = null;
   function open(){
-    if(_db)return Promise.resolve(_db);
+    if(_db) return Promise.resolve(_db);
     return new Promise(function(res,rej){
-      var req=indexedDB.open('prestart_v3',1);
-      req.onupgradeneeded=function(e){
-        var db=e.target.result;
-        if(!db.objectStoreNames.contains('kv'))db.createObjectStore('kv');
-        if(!db.objectStoreNames.contains('queue'))db.createObjectStore('queue',{keyPath:'qid',autoIncrement:true});
+      var req = indexedDB.open('prestart_worker_v1',1);
+      req.onupgradeneeded = function(e){
+        var db = e.target.result;
+        if(!db.objectStoreNames.contains('kv')) db.createObjectStore('kv');
+        if(!db.objectStoreNames.contains('queue')) db.createObjectStore('queue',{keyPath:'qid',autoIncrement:true});
       };
-      req.onsuccess=function(e){_db=e.target.result;res(_db);};
-      req.onerror=function(){rej(req.error);};
+      req.onsuccess = function(e){ _db = e.target.result; res(_db); };
+      req.onerror = function(){ rej(req.error); };
     });
   }
-  function iget(key){return open().then(function(db){return new Promise(function(res,rej){var r=db.transaction('kv','readonly').objectStore('kv').get(key);r.onsuccess=function(){res(r.result||null);};r.onerror=function(){rej(r.error);};});});}
-  function iset(key,val){return open().then(function(db){return new Promise(function(res,rej){var r=db.transaction('kv','readwrite').objectStore('kv').put(val,key);r.onsuccess=function(){res();};r.onerror=function(){rej(r.error);};});});}
-  function qall(){return open().then(function(db){return new Promise(function(res,rej){var r=db.transaction('queue','readonly').objectStore('queue').getAll();r.onsuccess=function(){res(r.result);};r.onerror=function(){rej(r.error);};});});}
-  function qadd(item){return open().then(function(db){return new Promise(function(res,rej){var r=db.transaction('queue','readwrite').objectStore('queue').add(Object.assign({},item,{ts:Date.now()}));r.onsuccess=function(){res(r.result);};r.onerror=function(){rej(r.error);};});});}
-  function qdel(qid){return open().then(function(db){return new Promise(function(res,rej){var r=db.transaction('queue','readwrite').objectStore('queue').delete(qid);r.onsuccess=function(){res();};r.onerror=function(){rej(r.error);};});});}
-  function qcount(){return qall().then(function(q){return q.length;});}
-  return{get:iget,set:iset,queueAll:qall,queueAdd:qadd,queueDelete:qdel,queueCount:qcount};
+  function get(k){ return open().then(function(db){ return new Promise(function(res,rej){ var r=db.transaction('kv','readonly').objectStore('kv').get(k); r.onsuccess=function(){res(r.result||null);}; r.onerror=function(){rej(r.error);}; }); }); }
+  function set(k,v){ return open().then(function(db){ return new Promise(function(res,rej){ var r=db.transaction('kv','readwrite').objectStore('kv').put(v,k); r.onsuccess=function(){res();}; r.onerror=function(){rej(r.error);}; }); }); }
+  function qall(){ return open().then(function(db){ return new Promise(function(res,rej){ var r=db.transaction('queue','readonly').objectStore('queue').getAll(); r.onsuccess=function(){res(r.result);}; r.onerror=function(){rej(r.error);}; }); }); }
+  function qadd(item){ return open().then(function(db){ return new Promise(function(res,rej){ var r=db.transaction('queue','readwrite').objectStore('queue').add(Object.assign({},item,{ts:Date.now()})); r.onsuccess=function(){res(r.result);}; r.onerror=function(){rej(r.error);}; }); }); }
+  function qdel(qid){ return open().then(function(db){ return new Promise(function(res,rej){ var r=db.transaction('queue','readwrite').objectStore('queue').delete(qid); r.onsuccess=function(){res();}; r.onerror=function(){rej(r.error);}; }); }); }
+  return { get:get, set:set, qall:qall, qadd:qadd, qdel:qdel };
 })();
 
-var _sb=null,_onSyncUpdate=null;
-var Sync={
-  processing:false,
-  init:function(url,key,onUpdate){_sb=supabase.createClient(url,key);_onSyncUpdate=onUpdate;},
-  process:function(){
-    var self=this;
-    if(self.processing||!navigator.onLine||!_sb)return;
-    self.processing=true;
-    IDB.queueAll().then(function(queue){
-      var chain=Promise.resolve();
-      queue.forEach(function(item){
-        chain=chain.then(function(){
-          return IDB.get(item.idbKey).then(function(data){
-            if(!data)return IDB.queueDelete(item.qid);
-            var payload=Array.isArray(data)?data:[data];
-            return _sb.from(item.table).upsert(payload,{onConflict:item.conflict||'id'}).then(function(r){
-              if(r.error)throw r.error;
-              return IDB.queueDelete(item.qid);
-            });
-          }).catch(function(e){console.warn('sync fail',item.table,e.message);});
-        });
-      });
-      return chain;
-    }).finally(function(){
-      self.processing=false;
-      if(_onSyncUpdate)IDB.queueCount().then(_onSyncUpdate);
-    });
-  },
-  queue:function(table,idbKey,conflict){
-    var self=this;
-    return IDB.queueAdd({table:table,idbKey:idbKey,conflict:conflict}).then(function(){
-      if(navigator.onLine)self.process();
-    });
-  }
-};
-window.addEventListener('online',function(){Sync.process();});
-document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')Sync.process();});
-
-var DB={
-  getVehicles:function(){return IDB.get('vehicles').then(function(v){return v||[];});},
-  saveVehicles:function(v){return IDB.set('vehicles',v).then(function(){return Sync.queue('vehicles','vehicles','id');});},
-  getPrestart:function(vid,date){return IDB.get('ps_'+vid+'_'+date);},
-  savePrestart:function(ps){return IDB.set('ps_'+ps.vehicle_id+'_'+ps.date,ps).then(function(){return Sync.queue('prestarts','ps_'+ps.vehicle_id+'_'+ps.date,'vehicle_id,date');});},
-  getIssues:function(vid){return IDB.get('issues_'+vid).then(function(v){return v||[];});},
-  saveIssues:function(vid,issues){return IDB.set('issues_'+vid,issues).then(function(){return Sync.queue('issues','issues_'+vid,'id');});},
-  resolveIssue:function(vid,issueId){
-    var self=this;
-    return self.getIssues(vid).then(function(issues){
-      var updated=issues.map(function(i){return i.id===issueId?Object.assign({},i,{resolved:true,resolved_date:today()}):i;});
-      return IDB.set('issues_'+vid,updated).then(function(){
-        return Sync.queue('issues','issues_'+vid,'id').then(function(){return updated;});
-      });
-    });
-  },
-  getKmHistory:function(vid){return IDB.get('km_'+vid).then(function(v){return v||[];});},
-  addKmEntry:function(vid,date,odometer){
-    var self=this;
-    return self.getKmHistory(vid).then(function(h){
-      var id=vid+'_'+date;
-      var entry={id:id,vehicle_id:vid,date:date,odometer:odometer};
-      var idx=h.findIndex(function(x){return x.date===date;});
-      if(idx>=0)h[idx]=entry;else h.push(entry);
-      return IDB.set('km_'+vid,h).then(function(){return Sync.queue('km_history','km_'+vid,'vehicle_id,date');});
-    });
-  },
-  getServiceRecords:function(vid){return IDB.get('svcs_'+vid).then(function(v){return v||[];});},
-  addServiceRecord:function(vid,record){
-    var self=this;
-    return self.getServiceRecords(vid).then(function(recs){
-      recs.push(record);
-      return IDB.set('svcs_'+vid,recs).then(function(){return Sync.queue('service_records','svcs_'+vid,'id');});
-    });
-  },
-  updateVehicleService:function(vid,km,date){
-    var self=this;
-    return self.getVehicles().then(function(vehicles){
-      var updated=vehicles.map(function(v){return v.id===vid?Object.assign({},v,{last_service_km:km,last_service_date:date}):v;});
-      return IDB.set('vehicles',updated).then(function(){
-        return Sync.queue('vehicles','vehicles','id').then(function(){return updated;});
-      });
-    });
-  },
-  pullAll:function(){
-    if(!_sb||!navigator.onLine)return Promise.resolve();
-    return _sb.from('vehicles').select('*').order('id').then(function(r){
-      if(!r.data||r.data.length===0)return;
-      return IDB.set('vehicles',r.data).then(function(){
-        var chain=Promise.resolve();
-        r.data.forEach(function(v){
-          chain=chain.then(function(){
-            return Promise.all([
-              _sb.from('issues').select('*').eq('vehicle_id',v.id).then(function(r2){if(r2.data)return IDB.set('issues_'+v.id,r2.data);}),
-              _sb.from('km_history').select('*').eq('vehicle_id',v.id).order('date').then(function(r2){if(r2.data)return IDB.set('km_'+v.id,r2.data);}),
-              _sb.from('service_records').select('*').eq('vehicle_id',v.id).order('date').then(function(r2){if(r2.data)return IDB.set('svcs_'+v.id,r2.data);})
-            ]);
+// ── SYNC ─────────────────────────────────────────────────
+var pendingCount = 0;
+var onPendingChange = null;
+function syncFlush(){
+  if(!navigator.onLine || !_sb) return;
+  IDB.qall().then(function(queue){
+    var chain = Promise.resolve();
+    queue.forEach(function(item){
+      chain = chain.then(function(){
+        return IDB.get(item.idbKey).then(function(data){
+          if(!data) return IDB.qdel(item.qid);
+          var payload = Array.isArray(data) ? data : [data];
+          return _sb.from(item.table).upsert(payload,{onConflict:item.conflict||'id'}).then(function(r){
+            if(r.error) throw r.error;
+            return IDB.qdel(item.qid);
           });
-        });
-        return chain;
+        }).catch(function(e){ console.warn('sync fail',e.message); });
       });
-    }).catch(function(e){console.warn('pull failed',e.message);});
-  }
-};
+    });
+    return chain;
+  }).then(function(){
+    IDB.qall().then(function(q){
+      pendingCount = q.length;
+      if(onPendingChange) onPendingChange(pendingCount);
+    });
+  });
+}
+function queueSync(table, idbKey, conflict){
+  return IDB.qadd({table:table,idbKey:idbKey,conflict:conflict}).then(function(){
+    IDB.qall().then(function(q){ pendingCount=q.length; if(onPendingChange) onPendingChange(pendingCount); });
+    if(navigator.onLine) syncFlush();
+  });
+}
+window.addEventListener('online', syncFlush);
+document.addEventListener('visibilitychange', function(){ if(document.visibilityState==='visible') syncFlush(); });
 
-function today(){return new Date().toISOString().split('T')[0];}
-function fmtDate(d){try{return new Date(d+'T12:00:00').toLocaleDateString('en-AU',{day:'2-digit',month:'short',year:'numeric'});}catch(e){return d;}}
-function fmtKm(n){return Number(n).toLocaleString('en-AU');}
-function uid(){return crypto.randomUUID?crypto.randomUUID():Math.random().toString(36).slice(2)+Date.now().toString(36);}
+// ── HELPERS ──────────────────────────────────────────────
+function today(){ return new Date().toISOString().split('T')[0]; }
+function yesterday(){ var d=new Date(); d.setDate(d.getDate()-1); return d.toISOString().split('T')[0]; }
+function fmtDate(d){ try{ return new Date(d+'T12:00:00').toLocaleDateString('en-AU',{weekday:'short',day:'2-digit',month:'short',year:'numeric'}); }catch(e){ return d; } }
+function fmtKm(n){ return Number(n).toLocaleString('en-AU'); }
+function uid(){ return crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2)+Date.now().toString(36); }
 
-var CHECKLIST=[
-  {id:'a_isolator',    label:'Isolator function and tags',                cat:'A'},
-  {id:'a_wheel_nuts',  label:'Rims and wheel nut tension',                cat:'A'},
-  {id:'a_fire_haz',    label:'FIRE HAZARD \u2014 Oil leaks or rags in engine bay', cat:'A'},
-  {id:'a_fire_ext',    label:'Fire extinguishers and AFFF charge',        cat:'A'},
-  {id:'a_steering',    label:'Steering',                                  cat:'A'},
-  {id:'a_svc_brake',   label:'Service brakes',                            cat:'A'},
-  {id:'a_park_brake',  label:'Park brake',                                cat:'A'},
-  {id:'a_radio',       label:'Two-way radio (radio check)',                cat:'A'},
-  {id:'a_seatbelts',   label:'Seat and seat belts',                       cat:'A'},
-  {id:'a_horn',        label:'Horn',                                      cat:'A'},
-  {id:'a_gauges',      label:'Gauges and alarm lights',                   cat:'A'},
-  {id:'a_beacon',      label:'Beacon and LED flag/pole',                  cat:'A'},
-  {id:'a_headlights',  label:'Headlights and work lights',                cat:'A'},
-  {id:'a_tail_lights', label:'Tail and indicator lights',                 cat:'A'},
-  {id:'a_rev_lights',  label:'Reverse lights and alarm',                  cat:'A'},
-  {id:'a_dash_cam',    label:'Dash camera / reverse camera (if fitted)',  cat:'A'},
-  {id:'a_fwd_cam',     label:'Forward facing camera',                     cat:'A'},
-  {id:'b_engine_oil',  label:'Engine oil level and condition',            cat:'B'},
-  {id:'b_coolant',     label:'Coolant fluid level',                       cat:'B'},
-  {id:'b_brake_fluid', label:'Brake fluid level',                         cat:'B'},
-  {id:'b_clutch_oil',  label:'Clutch oil level',                          cat:'B'},
-  {id:'b_pwr_steer',   label:'Power steering fluid level',                cat:'B'},
-  {id:'b_battery',     label:'Battery connections and security',          cat:'B'},
-  {id:'b_belts',       label:'Belt tension',                              cat:'B'},
-  {id:'b_oil_leaks',   label:'Oil leaks (non-hot zones)',                 cat:'B'},
-  {id:'b_mirrors',     label:'Mirrors',                                   cat:'B'},
-  {id:'b_tyre_depth',  label:'Tyre tread depth and inflation',            cat:'B'},
-  {id:'b_tyre_damage', label:'Tyre damage',                               cat:'B'},
-  {id:'b_hand_rails',  label:'Hand rails and steps',                      cat:'B'},
-  {id:'b_aircon',      label:'Air conditioner',                           cat:'B'},
-  {id:'b_exhaust',     label:'Exhaust pipe',                              cat:'B'},
-  {id:'b_tray',        label:'Tray headboard / cargo barrier',            cat:'B'},
-  {id:'b_wheel_brace', label:'Wheel brace and jack',                      cat:'B'},
-  {id:'b_wheel_chocks',label:'Wheel chocks',                              cat:'B'},
-  {id:'c_cabin',       label:'Cabin is clean',                            cat:'C'},
-  {id:'c_equip_id',    label:'Equipment ID clean and visible',            cat:'C'},
-  {id:'c_first_aid',   label:'First aid kit',                             cat:'C'},
-  {id:'c_fuel',        label:'Fuel level',                                cat:'C'},
-  {id:'c_washers',     label:'Windscreen washer/wipers',                  cat:'C'},
-  {id:'c_windows',     label:'Windows',                                   cat:'C'},
-  {id:'c_body',        label:'Body and tray damage',                      cat:'C'},
-  {id:'c_spare_tyre',  label:'Spare tyre',                                cat:'C'},
-  {id:'c_warn_lights', label:'Warning lights',                            cat:'C'},
-  {id:'c_other',       label:'Other damage',                              cat:'C'}
+// ── CHECKLIST ────────────────────────────────────────────
+var CHECKLIST = [
+  {id:'a_isolator',    label:'Isolator function and tags',                        cat:'A'},
+  {id:'a_wheel_nuts',  label:'Rims and wheel nut tension',                        cat:'A'},
+  {id:'a_fire_haz',    label:'FIRE HAZARD \u2014 Oil leaks or rags in engine bay',cat:'A'},
+  {id:'a_fire_ext',    label:'Fire extinguishers and AFFF charge',                cat:'A'},
+  {id:'a_steering',    label:'Steering',                                          cat:'A'},
+  {id:'a_svc_brake',   label:'Service brakes',                                    cat:'A'},
+  {id:'a_park_brake',  label:'Park brake',                                        cat:'A'},
+  {id:'a_radio',       label:'Two-way radio (radio check)',                        cat:'A'},
+  {id:'a_seatbelts',   label:'Seat and seat belts',                               cat:'A'},
+  {id:'a_horn',        label:'Horn',                                              cat:'A'},
+  {id:'a_gauges',      label:'Gauges and alarm lights',                           cat:'A'},
+  {id:'a_beacon',      label:'Beacon and LED flag/pole',                          cat:'A'},
+  {id:'a_headlights',  label:'Headlights and work lights',                        cat:'A'},
+  {id:'a_tail_lights', label:'Tail and indicator lights',                         cat:'A'},
+  {id:'a_rev_lights',  label:'Reverse lights and alarm',                          cat:'A'},
+  {id:'a_dash_cam',    label:'Dash camera / reverse camera (if fitted)',          cat:'A'},
+  {id:'a_fwd_cam',     label:'Forward facing camera',                             cat:'A'},
+  {id:'b_engine_oil',  label:'Engine oil level and condition',                    cat:'B'},
+  {id:'b_coolant',     label:'Coolant fluid level',                               cat:'B'},
+  {id:'b_brake_fluid', label:'Brake fluid level',                                 cat:'B'},
+  {id:'b_clutch_oil',  label:'Clutch oil level',                                  cat:'B'},
+  {id:'b_pwr_steer',   label:'Power steering fluid level',                        cat:'B'},
+  {id:'b_battery',     label:'Battery connections and security',                  cat:'B'},
+  {id:'b_belts',       label:'Belt tension',                                      cat:'B'},
+  {id:'b_oil_leaks',   label:'Oil leaks (non-hot zones)',                         cat:'B'},
+  {id:'b_mirrors',     label:'Mirrors',                                           cat:'B'},
+  {id:'b_tyre_depth',  label:'Tyre tread depth and inflation',                    cat:'B'},
+  {id:'b_tyre_damage', label:'Tyre damage',                                       cat:'B'},
+  {id:'b_hand_rails',  label:'Hand rails and steps',                              cat:'B'},
+  {id:'b_aircon',      label:'Air conditioner',                                   cat:'B'},
+  {id:'b_exhaust',     label:'Exhaust pipe',                                      cat:'B'},
+  {id:'b_tray',        label:'Tray headboard / cargo barrier',                   cat:'B'},
+  {id:'b_wheel_brace', label:'Wheel brace and jack',                              cat:'B'},
+  {id:'b_wheel_chocks',label:'Wheel chocks',                                      cat:'B'},
+  {id:'c_cabin',       label:'Cabin is clean',                                    cat:'C'},
+  {id:'c_equip_id',    label:'Equipment ID clean and visible',                    cat:'C'},
+  {id:'c_first_aid',   label:'First aid kit',                                     cat:'C'},
+  {id:'c_fuel',        label:'Fuel level',                                        cat:'C'},
+  {id:'c_washers',     label:'Windscreen washer/wipers',                          cat:'C'},
+  {id:'c_windows',     label:'Windows',                                           cat:'C'},
+  {id:'c_body',        label:'Body and tray damage',                              cat:'C'},
+  {id:'c_spare_tyre',  label:'Spare tyre',                                        cat:'C'},
+  {id:'c_warn_lights', label:'Warning lights',                                    cat:'C'},
+  {id:'c_other',       label:'Other damage',                                      cat:'C'},
 ];
-var CATS=['A','B','C'];
-var CAT_LABEL={A:'Cat A',B:'Cat B',C:'Cat C'};
-var CAT_FULL={A:'Walk-around Inspection',B:'Functional & Operational',C:'General Condition'};
-var CAT_RULE={
-  A:'Equipment MUST NOT be operated until fault is rectified or approved by maintenance',
-  B:'Equipment MUST NOT be operated without authorisation from maintenance',
-  C:'Equipment CAN be operated \u2014 report fault to Supervisor or Leading Hand'
-};
-var CAT_BG  ={A:'var(--fail-bg)',B:'var(--warn-bg)',C:'var(--ok-bg)'};
-var CAT_BD  ={A:'var(--fail-bd)',B:'var(--warn-bd)',C:'var(--ok-bd)'};
-var CAT_TX  ={A:'var(--fail-tx)',B:'var(--warn-tx)',C:'var(--ok-tx)'};
-var COLORS=['#BA7517','#0F6E56','#185FA5','#993C1D','#533CC7','#1D6A8E','#7A3B69','#3B5A1F'];
 
-var useState=React.useState,useEffect=React.useEffect;
-var h=React.createElement;
+// ── REACT ────────────────────────────────────────────────
+var useState = React.useState, useEffect = React.useEffect;
+var h = React.createElement;
 
 function App(){
-  var s=useState('loading'),step=s[0],setStep=s[1];
-  var u=useState(''),user=u[0],setUser=u[1];
-  var ni=useState(''),nameIn=ni[0],setNameIn=ni[1];
-  var vw=useState('vehicles'),view=vw[0],setView=vw[1];
-  var sv=useState(null),selV=sv[0],setSelV=sv[1];
-  var vs=useState([]),vehicles=vs[0],setVehicles=vs[1];
-  var ps=useState(0),pendingSync=ps[0],setPendingSync=ps[1];
-  var ol=useState(navigator.onLine),isOnline=ol[0],setIsOnline=ol[1];
-  var sp=useState(false),showPin=sp[0],setShowPin=sp[1];
-  var pi=useState(''),pinIn=pi[0],setPinIn=pi[1];
-  var pe=useState(''),pinErr=pe[0],setPinErr=pe[1];
+  var vs = useState([]), vehicles=vs[0], setVehicles=vs[1];
+  var sel = useState(''), selId=sel[0], setSelId=sel[1];
+  var sc = useState('loading'), screen=sc[0], setScreen=sc[1];
+  var pd = useState(0), pending=pd[0], setPending=pd[1];
+  var oo = useState(navigator.onLine), online=oo[0], setOnline=oo[1];
 
   useEffect(function(){
-    Sync.init(SUPABASE_URL,SUPABASE_KEY,setPendingSync);
-    IDB.queueCount().then(setPendingSync);
-    DB.pullAll().then(function(){
-      return DB.getVehicles().then(function(v){setVehicles(v);setStep('name');Sync.process();});
+    onPendingChange = setPending;
+    _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    // pull vehicles from supabase, fall back to cache
+    _sb.from('vehicles').select('*').order('id').then(function(r){
+      if(r.data && r.data.length > 0){
+        IDB.set('vehicles', r.data).then(function(){ setVehicles(r.data); });
+      } else {
+        IDB.get('vehicles').then(function(v){ if(v) setVehicles(v); });
+      }
+      setScreen('pick');
     }).catch(function(){
-      DB.getVehicles().then(function(v){setVehicles(v);setStep('name');});
+      IDB.get('vehicles').then(function(v){ if(v) setVehicles(v); setScreen('pick'); });
     });
-    window.addEventListener('online',function(){setIsOnline(true);});
-    window.addEventListener('offline',function(){setIsOnline(false);});
-  },[]);
+    window.addEventListener('online',  function(){ setOnline(true);  syncFlush(); });
+    window.addEventListener('offline', function(){ setOnline(false); });
+  }, []);
 
-  function refreshVehicles(){DB.getVehicles().then(setVehicles);}
-
-  function submitPin(){
-    if(pinIn===SUPERVISOR_PIN){
-      setShowPin(false);setPinIn('');setPinErr('');
-      setUser('Supervisor');setView('dashboard');
-    } else {
-      setPinErr('Incorrect PIN');setPinIn('');
-    }
+  if(screen === 'loading'){
+    return h('div', {style:{display:'flex',alignItems:'center',justifyContent:'center',height:'80vh',color:'var(--tx3)',fontSize:13}}, 'Loading...');
   }
 
-  if(step==='loading')return h('div',{style:{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',color:'var(--tx3)',fontSize:13}},'Loading...');
+  var syncCls = !online ? 'sync-dot s-off' : pending > 0 ? 'sync-dot s-pend' : 'sync-dot s-ok';
 
-  // PIN overlay for supervisor
-  if(showPin){
-    return h('div',{className:'auth'},
-      h('div',{className:'auth-sup'},'SUPERVISOR ACCESS'),
-      h('div',{className:'auth-h',style:{fontSize:22}},'Enter PIN'),
-      h('input',{className:'auth-input',type:'password',inputMode:'numeric',maxLength:6,placeholder:'\u2022\u2022\u2022\u2022',value:pinIn,
-        onChange:function(e){setPinIn(e.target.value);setPinErr('');},
-        onKeyDown:function(e){if(e.key==='Enter')submitPin();},
-        autoFocus:true}),
-      pinErr&&h('div',{style:{fontSize:12,color:'var(--fail-tx)'}},'Incorrect PIN'),
-      h('button',{className:'abtn',disabled:!pinIn,onClick:submitPin},'UNLOCK DASHBOARD'),
-      h('button',{className:'abtn-ghost',onClick:function(){setShowPin(false);setPinIn('');setPinErr('');}}, 'CANCEL')
-    );
-  }
-
-  // Worker name entry
-  if(step==='name'&&!user){
-    return h('div',{className:'auth'},
-      h('div',{className:'auth-sup'},'EXPLORATION FLEET MANAGEMENT'),
-      h('div',{className:'auth-h'},'Vehicle Prestart'),
-      h('div',{className:'auth-sub'},'Enter your name to begin'),
-      h('input',{className:'auth-input',placeholder:'Your name...',value:nameIn,
-        onChange:function(e){setNameIn(e.target.value);},
-        onKeyDown:function(e){if(e.key==='Enter'&&nameIn.trim())setUser(nameIn.trim());}}),
-      h('button',{className:'abtn',disabled:!nameIn.trim(),onClick:function(){setUser(nameIn.trim());}},
-        'START PRESTART'),
-      h('div',{style:{marginTop:8}},
-        h('button',{className:'abtn-ghost',onClick:function(){setShowPin(true);}},
-          'Supervisor / Mechanic \u2192')
-      )
-    );
-  }
-
-  var syncCls=!isOnline?'sync-dot sync-off':pendingSync>0?'sync-dot sync-pend':'sync-dot sync-ok';
-  return h('div',{className:'app'},
-    h('div',{className:'nav'},
-      h('div',{className:'nav-brand'},h('span',{className:'nav-badge'},'PRE'),h('span',{className:'nav-title'},'START')),
-      user==='Supervisor'&&h('div',{className:'nav-tabs'},
-        h('button',{className:view!=='dashboard'?'ntab on':'ntab',onClick:function(){setView('vehicles');setSelV(null);}},'Prestart'),
-        h('button',{className:view==='dashboard'?'ntab on':'ntab',onClick:function(){setView('dashboard');}},'Dashboard')
+  return h('div', null,
+    h('div', {className:'hdr'},
+      h('div', {className:'hdr-brand'},
+        h('span', {className:'hdr-pill'}, 'PRE'),
+        h('span', {className:'hdr-title'}, 'START')
       ),
-      h('div',{style:{display:'flex',alignItems:'center',gap:10}},
-        h('span',{className:syncCls,title:!isOnline?'Offline':pendingSync>0?pendingSync+' pending':'Synced'}),
-        user!=='Supervisor'&&h('span',{style:{fontSize:11,color:'var(--tx3)'}},user),
-        user!=='Supervisor'&&h('button',{style:{fontSize:11,color:'var(--tx3)',background:'none',border:'none',cursor:'pointer',padding:0},onClick:function(){setUser('');setNameIn('');}},'\u00D7 exit')
+      h('div', {className:'hdr-right'},
+        !online && h('span', {style:{fontSize:11,color:'var(--warn-tx)'}}, 'offline'),
+        h('span', {className:syncCls, title: pending > 0 ? pending+' pending' : 'synced'})
       )
     ),
-    !isOnline&&h('div',{className:'offline-banner'},'OFFLINE \u2014 saved locally, syncs when reconnected'),
-    view==='vehicles'&&h(VehicleSelect,{vehicles:vehicles,onSelect:function(v){setSelV(v);setView('prestart');}}),
-    view==='prestart'&&selV&&h(PrestartForm,{vehicle:selV,user:user,onBack:function(){setView('vehicles');setSelV(null);}}),
-    view==='dashboard'&&h(Dashboard,{vehicles:vehicles,setVehicles:setVehicles,refreshVehicles:refreshVehicles})
+    !online && h('div', {className:'offline-bar'}, 'No connection \u2014 prestart will save and sync when back online'),
+    screen === 'pick'   && h(PickScreen,   {vehicles:vehicles, onSelect:function(id){ setSelId(id); setScreen('form'); }}),
+    screen === 'form'   && h(FormScreen,   {vehicles:vehicles, selId:selId, onDone:function(){ setScreen('done'); }, onAlready:function(){ setScreen('already'); }}),
+    screen === 'done'   && h(DoneScreen,   {selId:selId, onAnother:function(){ setSelId(''); setScreen('pick'); }}),
+    screen === 'already'&& h(AlreadyScreen,{selId:selId, onAnother:function(){ setSelId(''); setScreen('pick'); }})
   );
 }
 
-function VehicleSelect(props){
-  var vd=useState({}),vdata=vd[0],setVdata=vd[1];
-  useEffect(function(){
-    props.vehicles.forEach(function(v){
-      DB.getKmHistory(v.id).then(function(km){
-        var last=km.length>0?km[km.length-1].odometer:v.last_service_km;
-        var since=last-v.last_service_km;
-        var to=v.service_interval_km-since;
-        setVdata(function(p){return Object.assign({},p,{[v.id]:{last:last,to:to}});});
-      });
-    });
-  },[props.vehicles]);
-  if(props.vehicles.length===0)return h('div',{className:'empty',style:{paddingTop:60}},
-    'No vehicles found.',h('br'),h('span',{style:{fontSize:11,marginTop:4,display:'block'}},'Ask your supervisor to add vehicles in the Dashboard.')
-  );
-  return h('div',{className:'page'},
-    h('span',{className:'slabel'},'SELECT VEHICLE'),
-    h('div',{className:'v-grid'},props.vehicles.map(function(v){
-      var d=vdata[v.id]||{};
-      var cls=d.to<=0?'badge badge-fail':d.to<=500?'badge badge-warn':'badge badge-ok';
-      var txt=d.to===undefined?'':d.to<=0?'SVC OVERDUE':fmtKm(d.to)+'km to svc';
-      return h('div',{key:v.id,className:'v-card',style:{borderLeft:'3px solid '+v.color},onClick:function(){props.onSelect(v);}},
-        h('div',{className:'v-id',style:{color:v.color}},v.id),
-        h('div',{className:'v-model'},v.year+' '+v.make+' '+v.model),
-        d.last&&h('div',{className:'v-km'},fmtKm(d.last)+' km'),
-        txt&&h('div',{className:cls},txt)
-      );
-    }))
-  );
-}
+// ── PICK SCREEN ──────────────────────────────────────────
+function PickScreen(props){
+  var vehicles = props.vehicles;
+  var meta = useState(null), prevMeta=meta[0], setPrevMeta=meta[1];
+  var lastSel = useState(''), lastId=lastSel[0], setLastId=lastSel[1];
 
-function PrestartForm(props){
-  var vehicle=props.vehicle,user=props.user;
-  var cs=useState({}),checks=cs[0],setChecks=cs[1];
-  var cm=useState({}),comments=cm[0],setComments=cm[1];
-  var od=useState(''),odometer=od[0],setOdometer=od[1];
-  var sh=useState('Day'),shift=sh[0],setShift=sh[1];
-  var cr=useState(''),crew=cr[0],setCrew=cr[1];
-  var is=useState([]),issues=is[0],setIssues=is[1];
-  var ac=useState('A'),activeCat=ac[0],setActiveCat=ac[1];
-  var st=useState('loading'),status=st[0],setStatus=st[1];
-  var sv=useState(false),saving=sv[0],setSaving=sv[1];
-
-  useEffect(function(){
-    DB.getPrestart(vehicle.id,today()).then(function(ex){
-      if(ex){setStatus('done');return;}
-      DB.getIssues(vehicle.id).then(function(all){
-        setIssues(all.filter(function(i){return !i.resolved;}));
-        setStatus('form');
-      });
-    });
-  },[vehicle.id]);
-
-  function catItems(c){return CHECKLIST.filter(function(i){return i.cat===c;});}
-  function isAnswered(id){return checks[id]==='pass'||checks[id]==='fail'||checks[id]==='na';}
-  var totalDone=CHECKLIST.filter(function(i){return isAnswered(i.id);}).length;
-  function catDone(c){return catItems(c).filter(function(i){return isAnswered(i.id);}).length;}
-  function catHasFail(c){return catItems(c).some(function(i){return checks[i.id]==='fail';});}
-  var critFails=CHECKLIST.filter(function(i){return(i.cat==='A'||i.cat==='B')&&checks[i.id]==='fail';});
-
-  function submit(){
-    var missing=CHECKLIST.filter(function(i){return !isAnswered(i.id);});
-    if(missing.length>0){alert('Complete all '+missing.length+' remaining item(s) first.');return;}
-    if(!odometer||isNaN(odometer)){alert("Enter today's odometer reading.");return;}
-    setSaving(true);
-    var ps={
-      id:vehicle.id+'_'+today(),vehicle_id:vehicle.id,date:today(),
-      submitted_by:user,shift:shift,crew:crew,odometer:parseInt(odometer),
-      checks:checks,comments:comments,has_critical_fail:critFails.length>0,
-      created_at:new Date().toISOString()
-    };
-    DB.savePrestart(ps).then(function(){
-      return DB.addKmEntry(vehicle.id,today(),parseInt(odometer));
-    }).then(function(){
-      var fails=CHECKLIST.filter(function(i){return checks[i.id]==='fail';});
-      if(fails.length===0)return;
-      return DB.getIssues(vehicle.id).then(function(allI){
-        fails.forEach(function(f){
-          if(!allI.find(function(x){return !x.resolved&&x.check_id===f.id;})){
-            allI.push({
-              id:uid(),vehicle_id:vehicle.id,check_id:f.id,label:f.label,
-              category:'Cat '+f.cat,description:comments[f.id]||'Failed prestart \u2014 '+today(),
-              date:today(),reported_by:user,resolved:false,created_at:new Date().toISOString()
-            });
-          }
-        });
-        return DB.saveIssues(vehicle.id,allI);
-      });
-    }).then(function(){setSaving(false);setStatus('submitted');});
-  }
-
-  if(status==='loading')return null;
-  if(status==='done'||status==='submitted'){
-    return h('div',{className:'page'},
-      h('button',{className:'back',onClick:props.onBack},'\u2190 Back'),
-      h('div',{className:'sbox'},
-        h('div',{className:'s-icon'},h('svg',{width:24,height:24,viewBox:'0 0 24 24',fill:'none'},
-          h('path',{d:'M5 13l4 4L19 7',stroke:'var(--ok-tx)',strokeWidth:2.5,strokeLinecap:'round',strokeLinejoin:'round'}))),
-        h('div',{className:'s-title'},status==='submitted'?'Prestart submitted':'Already submitted today'),
-        h('div',{className:'s-sub'},vehicle.id+' \u2014 '+fmtDate(today()))
-      )
-    );
-  }
-
-  return h('div',{className:'page'},
-    h('button',{className:'back',onClick:props.onBack},'\u2190 Back'),
-    h('div',{className:'card',style:{borderLeft:'3px solid '+vehicle.color,marginBottom:10}},
-      h('div',{className:'card-p'},
-        h('div',{className:'form-hdr'},
-          h('div',null,
-            h('div',{className:'fh-id',style:{color:vehicle.color}},vehicle.id),
-            h('div',{style:{fontSize:12,color:'var(--tx2)'}},vehicle.year+' '+vehicle.make+' '+vehicle.model)
-          ),
-          h('div',{className:'fh-date'},'Date',h('strong',null,fmtDate(today())))
-        ),
-        h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}},
-          h('div',null,
-            h('div',{className:'odo-lbl',style:{marginBottom:4}},'SHIFT'),
-            h('div',{style:{display:'flex',gap:6}},
-              ['Day','Night'].map(function(s){
-                return h('button',{key:s,onClick:function(){setShift(s);},style:{
-                  flex:1,padding:'7px 0',cursor:'pointer',
-                  border:'0.5px solid '+(shift===s?'var(--accent)':'var(--bd2)'),
-                  borderRadius:'var(--r)',fontSize:12,fontWeight:shift===s?700:400,
-                  background:shift===s?'var(--accent)':'var(--bg2)',
-                  color:shift===s?'#fff':'var(--tx2)'
-                }},s);
-              })
-            )
-          ),
-          h('div',null,
-            h('div',{className:'odo-lbl',style:{marginBottom:4}},'CREW'),
-            h('input',{className:'finput',placeholder:'Crew name/no.',value:crew,
-              onChange:function(e){setCrew(e.target.value);},style:{padding:'8px 10px'}})
-          )
-        )
-      )
-    ),
-    issues.length>0&&h('div',{className:'issues-banner'},
-      h('div',{className:'ib-title'},'OUTSTANDING ISSUES ('+issues.length+')'),
-      issues.map(function(iss){
-        return h('div',{key:iss.id,className:'ib-row'},
-          h('span',{className:'ib-cat'},iss.category),
-          h('span',{className:'ib-lbl'},iss.label),
-          h('span',{className:'ib-since'},'Since '+fmtDate(iss.date)),
-          iss.description&&h('div',{className:'ib-note'},iss.description)
-        );
-      })
-    ),
-    critFails.length>0&&h('div',{style:{background:'var(--fail-bg)',border:'1.5px solid var(--fail-bd)',borderRadius:'var(--r)',padding:'12px 14px',marginBottom:10}},
-      h('div',{style:{fontSize:12,fontWeight:700,color:'var(--fail-tx)',marginBottom:6}},'\u26A0 VEHICLE MUST NOT BE OPERATED'),
-      h('div',{style:{fontSize:12,color:'var(--fail-tx)',marginBottom:6}},'Cat A/B fault(s) found. Report to Supervisor or Maintenance before operating.'),
-      critFails.map(function(f){return h('div',{key:f.id,style:{fontSize:12,color:'var(--fail-tx)',marginTop:3,paddingLeft:8,borderLeft:'2px solid var(--fail-bd)'}},'Cat '+f.cat+': '+f.label);})
-    ),
-    h('div',{className:'odo-box'},
-      h('div',{className:'odo-lbl'},"TODAY'S ODOMETER (km)"),
-      h('input',{className:'odo-in',type:'number',inputMode:'numeric',placeholder:'e.g. 45890',value:odometer,onChange:function(e){setOdometer(e.target.value);}})
-    ),
-    h('div',{className:'prog'},
-      h('div',{className:'prog-bar'},h('div',{className:'prog-fill',style:{width:(totalDone/CHECKLIST.length*100)+'%'}})),
-      h('div',{className:'prog-txt'},totalDone+'/'+CHECKLIST.length+' complete')
-    ),
-    h('div',{className:'cat-tabs'},
-      CATS.map(function(c){
-        var d=catDone(c),t=catItems(c).length,f=catHasFail(c);
-        var cls='ctab'+(c===activeCat?' on':'')+(f?' fail':'')+(d===t&&!f?' done':'');
-        return h('button',{key:c,className:cls,onClick:function(){setActiveCat(c);}},
-          CAT_LABEL[c]+' ',h('span',{style:{opacity:.6}},d+'/'+t));
-      })
-    ),
-    h('div',{className:'cat-banner',style:{background:CAT_BG[activeCat],border:'0.5px solid '+CAT_BD[activeCat],color:CAT_TX[activeCat]}},
-      h('strong',null,CAT_FULL[activeCat]),' \u2014 ',CAT_RULE[activeCat]
-    ),
-    h('div',{className:'checklist'},
-      catItems(activeCat).map(function(item){
-        return h(CheckItem,{key:item.id,item:item,val:checks[item.id],comment:comments[item.id]||'',
-          onChange:function(v){setChecks(function(p){return Object.assign({},p,{[item.id]:v});});},
-          onComment:function(v){setComments(function(p){return Object.assign({},p,{[item.id]:v});}); }
-        });
-      })
-    ),
-    h('button',{className:'sbmt',disabled:saving||totalDone<CHECKLIST.length,onClick:submit},
-      saving?'Saving...':totalDone<CHECKLIST.length?'Complete '+(CHECKLIST.length-totalDone)+' remaining items':'SUBMIT PRESTART'
-    )
-  );
-}
-
-function CheckItem(props){
-  var item=props.item,val=props.val,comment=props.comment;
-  var isFireHaz=item.id==='a_fire_haz';
-  var ciCls='ci'+(val==='pass'?' pass':val==='fail'?' fail':val==='na'?' na':'');
-  return h('div',{className:ciCls},
-    h('div',{className:'ci-top'},
-      h('span',{className:isFireHaz?'ci-lbl ci-fire':'ci-lbl'},item.label),
-      h('div',{className:'ci-btns'},
-        h('button',{className:'ck'+(val==='pass'?' p':''),onClick:function(){props.onChange(val==='pass'?null:'pass');}},'\u2713'),
-        h('button',{className:'ck'+(val==='fail'?' f':''),onClick:function(){props.onChange(val==='fail'?null:'fail');}},'\u2717'),
-        h('button',{className:'ck'+(val==='na'?' n':''),onClick:function(){props.onChange(val==='na'?null:'na');},'aria-label':'Not applicable'},'N/A')
-      )
-    ),
-    (val==='fail'||comment)&&h('textarea',{className:'ci-comment',rows:2,placeholder:'Describe the issue...',value:comment,onChange:function(e){props.onComment(e.target.value);}})
-  );
-}
-
-function Dashboard(props){
-  var fl=useState({}),fleet=fl[0],setFleet=fl[1];
-  var ld=useState(true),loading=ld[0],setLoading=ld[1];
-  var dt=useState(null),detail=dt[0],setDetail=dt[1];
-  var sa=useState(false),showAdd=sa[0],setShowAdd=sa[1];
-  useEffect(function(){loadAll();},[ props.vehicles]);
-  function loadAll(){
-    var d={};
-    var chain=Promise.resolve();
-    props.vehicles.forEach(function(v){
-      chain=chain.then(function(){
-        return Promise.all([DB.getKmHistory(v.id),DB.getIssues(v.id),DB.getServiceRecords(v.id)]).then(function(results){
-          var km=results[0],iss=results[1],sv=results[2];
-          var last=km.length>0?km[km.length-1].odometer:v.last_service_km;
-          var since=last-v.last_service_km;
-          var to=v.service_interval_km-since;
-          d[v.id]={km:km,openIssues:iss.filter(function(i){return !i.resolved;}),allIssues:iss,svcs:sv,last:last,since:since,to:to};
-        });
-      });
-    });
-    chain.then(function(){setFleet(d);setLoading(false);});
-  }
-  function reload(){
-    setLoading(true);
-    DB.pullAll().then(function(){return DB.getVehicles();}).then(function(v){
-      props.setVehicles(v);setFleet({});setDetail(null);
+  function onSelect(id){
+    if(!id) return;
+    setLastId(id);
+    setPrevMeta(null);
+    // load yesterday's info then navigate
+    IDB.get('ps_'+id+'_'+yesterday()).then(function(ps){
+      if(ps){
+        setPrevMeta({odometer:ps.odometer, general_comment:ps.general_comment});
+      } else if(_sb){
+        _sb.from('prestarts').select('odometer,general_comment').eq('vehicle_id',id).eq('date',yesterday()).single().then(function(r){
+          if(r.data) setPrevMeta(r.data);
+        }).catch(function(){});
+      }
+      props.onSelect(id);
     });
   }
-  function addVehicle(v){
-    DB.getVehicles().then(function(current){
-      if(current.find(function(x){return x.id.toLowerCase()===v.id.toLowerCase();})){alert('Vehicle ID already exists.');return;}
-      var updated=current.concat([v]);
-      DB.saveVehicles(updated).then(function(){props.setVehicles(updated);setShowAdd(false);});
-    });
-  }
-  if(loading)return h('div',{className:'empty',style:{paddingTop:60}},'Loading fleet...');
-  if(detail){
-    var dv=props.vehicles.find(function(x){return x.id===detail;});
-    var dd=fleet[detail]||{};
-    return h(VehicleDetail,{vehicle:dv,data:dd,vehicles:props.vehicles,setVehicles:props.setVehicles,onBack:reload});
-  }
-  var anyAlert=props.vehicles.some(function(v){return fleet[v.id]&&fleet[v.id].to<=500;});
-  return h('div',{className:'page'},
-    h('span',{className:'slabel'},'FLEET OVERVIEW'),
-    anyAlert&&h('div',{className:'alert-strip'},'\u26A0 One or more vehicles are due for service soon'),
-    h('div',{className:'dash-grid'},props.vehicles.map(function(v){
-      var d=fleet[v.id]||{};
-      var cls=d.to<=0?'badge badge-fail':d.to<=500?'badge badge-warn':'badge badge-ok';
-      var txt=d.to===undefined?'':d.to<=0?'SVC OVERDUE':fmtKm(d.to)+'km to svc';
-      var hi=d.openIssues&&d.openIssues.length>0;
-      return h('div',{key:v.id,className:'dc',style:{borderLeft:'3px solid '+v.color},onClick:function(){setDetail(v.id);}},
-        h('div',{className:'dc-id',style:{color:v.color}},v.id),
-        h('div',{className:'dc-model'},v.year+' '+v.make+' '+v.model),
-        txt&&h('div',{className:cls,style:{marginBottom:10}},txt),
-        h('div',{className:'dc-stats'},
-          h('div',null,h('div',{className:'ds-lbl'},'CURRENT KM'),h('div',{className:'ds-val'},d.last?fmtKm(d.last):'\u2014')),
-          h('div',null,h('div',{className:'ds-lbl'},'SINCE SVC'),h('div',{className:'ds-val'},d.since!==undefined?fmtKm(d.since):'\u2014')),
-          h('div',null,h('div',{className:'ds-lbl'},'ISSUES'),h('div',{className:hi?'ds-val ds-issues':'ds-val'},d.openIssues?d.openIssues.length:0))
-        )
-      );
-    })),
-    h('button',{className:'add-btn',onClick:function(){setShowAdd(!showAdd);}},showAdd?'CANCEL':'+ ADD VEHICLE'),
-    showAdd&&h(AddVehicleForm,{onAdd:addVehicle})
-  );
-}
 
-function AddVehicleForm(props){
-  var fs=useState({id:'',make:'',model:'',year:new Date().getFullYear(),color:COLORS[0],last_service_km:'',last_service_date:'',service_interval_km:5000});
-  var f=fs[0],setF=fs[1];
-  function save(){
-    if(!f.id||!f.make||!f.model){alert('Fill in ID, make, and model.');return;}
-    props.onAdd(Object.assign({},f,{year:parseInt(f.year),last_service_km:parseInt(f.last_service_km)||0,service_interval_km:parseInt(f.service_interval_km)||5000,updated_at:new Date().toISOString()}));
-  }
-  return h('div',{className:'add-v-form'},
-    h('div',{className:'field'},h('label',{className:'flabel'},'VEHICLE ID'),h('input',{className:'finput',placeholder:'e.g. LV159',value:f.id,onChange:function(e){setF(Object.assign({},f,{id:e.target.value.toUpperCase()}));}})),
-    h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}},
-      h('div',{className:'field'},h('label',{className:'flabel'},'MAKE'),h('input',{className:'finput',placeholder:'Toyota',value:f.make,onChange:function(e){setF(Object.assign({},f,{make:e.target.value}));}})),
-      h('div',{className:'field'},h('label',{className:'flabel'},'MODEL'),h('input',{className:'finput',placeholder:'HiLux',value:f.model,onChange:function(e){setF(Object.assign({},f,{model:e.target.value}));}}))
-    ),
-    h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}},
-      h('div',{className:'field'},h('label',{className:'flabel'},'YEAR'),h('input',{className:'finput',type:'number',value:f.year,onChange:function(e){setF(Object.assign({},f,{year:e.target.value}));}})),
-      h('div',{className:'field'},h('label',{className:'flabel'},'SVC INTERVAL (km)'),h('input',{className:'finput',type:'number',value:f.service_interval_km,onChange:function(e){setF(Object.assign({},f,{service_interval_km:e.target.value}));}}))
-    ),
-    h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}},
-      h('div',{className:'field'},h('label',{className:'flabel'},'LAST SVC (km)'),h('input',{className:'finput',type:'number',placeholder:'0',value:f.last_service_km,onChange:function(e){setF(Object.assign({},f,{last_service_km:e.target.value}));}})),
-      h('div',{className:'field'},h('label',{className:'flabel'},'LAST SVC DATE'),h('input',{className:'finput',type:'date',value:f.last_service_date,onChange:function(e){setF(Object.assign({},f,{last_service_date:e.target.value}));}}))
-    ),
-    h('div',{className:'field'},
-      h('label',{className:'flabel'},'COLOUR'),
-      h('div',{className:'color-row'},COLORS.map(function(c){return h('div',{key:c,className:'color-swatch'+(f.color===c?' sel':''),style:{background:c},onClick:function(){setF(Object.assign({},f,{color:c}));}});}))
-    ),
-    h('button',{className:'svc-save',onClick:save},'ADD VEHICLE')
-  );
-}
-
-function SvgLineChart(props){
-  var data=props.data,color=props.color,svcDates=props.svcDates||[];
-  if(!data||data.length<2)return null;
-  var W=500,H=180,PL=40,PR=12,PT=10,PB=28;
-  var vals=data.map(function(d){return d.km;});
-  var minV=Math.min.apply(null,vals),maxV=Math.max.apply(null,vals);
-  var range=maxV-minV||1;
-  function px(i){return PL+(i/(data.length-1))*(W-PL-PR);}
-  function py(v){return PT+H-(((v-minV)/range)*(H-PT-PB));}
-  var pts=data.map(function(d,i){return px(i)+','+py(d.km);}).join(' ');
-  var fillPts=pts+' '+px(data.length-1)+','+(H+PT)+' '+PL+','+(H+PT);
-  // x-axis labels: first, middle, last
-  var labelIdxs=[0,Math.floor((data.length-1)/2),data.length-1];
-  // y-axis ticks
-  var yTicks=[minV,minV+range/2,maxV];
-  return h('svg',{viewBox:'0 0 '+W+' '+(H+PT+2),width:'100%',style:{display:'block',overflow:'visible'}},
-    // grid lines
-    yTicks.map(function(v,i){
-      return h('line',{key:'g'+i,x1:PL,y1:py(v),x2:W-PR,y2:py(v),stroke:'rgba(128,128,128,0.15)',strokeWidth:1});
-    }),
-    // service date vertical lines
-    svcDates.filter(Boolean).map(function(d,i){
-      var idx=data.findIndex(function(x){return x.date===d;});
-      if(idx<0)return null;
-      return h('line',{key:'s'+i,x1:px(idx),y1:PT,x2:px(idx),y2:H,stroke:'#185FA5',strokeWidth:1,strokeDasharray:'3 3'});
-    }),
-    // fill under line
-    h('polygon',{points:fillPts,fill:color,opacity:.08}),
-    // line
-    h('polyline',{points:pts,fill:'none',stroke:color,strokeWidth:2,strokeLinejoin:'round',strokeLinecap:'round'}),
-    // y-axis labels
-    yTicks.map(function(v,i){
-      return h('text',{key:'y'+i,x:PL-4,y:py(v)+4,textAnchor:'end',fontSize:9,fill:'#888'},Math.round(v/1000)+'k');
-    }),
-    // x-axis labels
-    labelIdxs.map(function(i){
-      return h('text',{key:'x'+i,x:px(i),y:H+PT+2,textAnchor:'middle',fontSize:9,fill:'#888'},data[i].date);
-    })
-  );
-}
-
-function VehicleDetail(props){
-  var vehicle=props.vehicle,data=props.data;
-  var tb=useState('overview'),tab=tb[0],setTab=tb[1];
-  var is=useState(data.allIssues||[]),issues=is[0],setIssues=is[1];
-  var sv=useState(data.svcs||[]),svcs=sv[0],setSvcs=sv[1];
-  var sf_s=useState(false),showSvcForm=sf_s[0],setShowSvcForm=sf_s[1];
-  var sff=useState({date:today(),odometer:'',tech:'',completed:'',outstanding:''}),sf=sff[0],setSf=sff[1];
-  var open=issues.filter(function(i){return !i.resolved;});
-  var resolved=issues.filter(function(i){return i.resolved;});
-  var km=data.km||[];
-  var chartData=km.slice(-30).map(function(d){return {date:d.date.slice(5),km:d.odometer};});
-  var lastKm=data.last||vehicle.last_service_km;
-  var to=data.to;
-  function resolve(id){DB.resolveIssue(vehicle.id,id).then(function(updated){setIssues(updated);});}
-  function saveSvc(){
-    if(!sf.odometer){alert('Enter odometer reading.');return;}
-    var rec={id:uid(),vehicle_id:vehicle.id,date:sf.date,odometer:parseInt(sf.odometer),technician:sf.tech,completed:sf.completed,outstanding:sf.outstanding,created_at:new Date().toISOString()};
-    DB.addServiceRecord(vehicle.id,rec).then(function(){
-      return DB.updateVehicleService(vehicle.id,parseInt(sf.odometer),sf.date);
-    }).then(function(updV){
-      props.setVehicles(updV);setSvcs(svcs.concat([rec]));setShowSvcForm(false);
-      setSf({date:today(),odometer:'',tech:'',completed:'',outstanding:''});
-    });
-  }
-  return h('div',{className:'page'},
-    h('button',{className:'back',onClick:props.onBack},'\u2190 Fleet overview'),
-    h('div',{className:'dh',style:{borderLeft:'3px solid '+vehicle.color}},
-      h('div',{className:'dh-id',style:{color:vehicle.color}},vehicle.id),
-      h('div',{className:'dh-model'},vehicle.year+' '+vehicle.make+' '+vehicle.model),
-      h('div',{className:'dh-meta'},
-        h('span',null,'Current: ',h('strong',null,fmtKm(lastKm)+' km')),
-        h('span',null,'Since svc: ',h('strong',null,fmtKm(data.since||0))),
-        to<=0
-          ?h('span',{style:{color:'var(--fail-tx)',fontWeight:600}},'OVERDUE by '+fmtKm(Math.abs(to))+' km')
-          :h('span',{style:{color:to<=500?'var(--warn-tx)':'var(--tx2)'}},h('strong',null,fmtKm(to)),' km to next service')
-      )
-    ),
-    h('div',{className:'tabs'},
-      ['overview','issues','services'].map(function(t){
-        return h('button',{key:t,className:'tbtn'+(tab===t?' on':''),onClick:function(){setTab(t);}},
-          t.charAt(0).toUpperCase()+t.slice(1),
-          t==='issues'&&open.length>0&&h('span',{className:'tb-badge'},open.length)
-        );
-      })
-    ),
-    tab==='overview'&&h('div',null,
-      h('div',{className:'chart-wrap'},
-        h('div',{className:'chart-title'},'ODOMETER HISTORY (last 30 entries)'),
-        chartData.length>0
-          ?h(SvgLineChart,{data:chartData,color:vehicle.color,svcDates:svcs.map(function(s){return s.date?s.date.slice(5):null;})})
-          :h('div',{className:'empty'},'No odometer history yet.')
-      ),
-      h('div',{className:'info-card'},
-        h('div',{className:'ir'},h('span',{className:'ik'},'Last service'),h('span',{className:'iv'},fmtDate(vehicle.last_service_date)+' @ '+fmtKm(vehicle.last_service_km)+' km')),
-        h('div',{className:'ir'},h('span',{className:'ik'},'Service interval'),h('span',{className:'iv'},fmtKm(vehicle.service_interval_km)+' km')),
-        h('div',{className:'ir'},h('span',{className:'ik'},'Next service due at'),h('span',{className:'iv',style:{color:vehicle.color}},fmtKm(vehicle.last_service_km+vehicle.service_interval_km)+' km')),
-        h('div',{className:'ir'},h('span',{className:'ik'},'Remaining'),h('span',{className:'iv',style:{color:to<=0?'var(--fail-tx)':to<=500?'var(--warn-tx)':'var(--tx)'}},to<=0?'Overdue by '+fmtKm(Math.abs(to))+' km':fmtKm(to)+' km remaining'))
-      )
-    ),
-    tab==='issues'&&h('div',null,
-      open.length===0&&h('div',{className:'empty'},'No outstanding issues'),
-      open.map(function(iss){
-        return h('div',{key:iss.id,className:'issue-card'},
-          h('div',{className:'ic-top'},
-            h('div',null,h('span',{className:'badge badge-fail'},iss.category),h('div',{className:'ic-lbl'},iss.label)),
-            h('button',{className:'resolve-btn',onClick:function(){resolve(iss.id);}},'MARK RESOLVED')
-          ),
-          iss.description&&h('div',{className:'ic-desc'},iss.description),
-          h('div',{className:'ic-meta'},'Reported by '+iss.reported_by+' \u00B7 '+fmtDate(iss.date))
-        );
-      }),
-      resolved.length>0&&h('div',null,
-        h('span',{className:'slabel',style:{marginTop:20}},'RESOLVED'),
-        resolved.map(function(iss){
-          return h('div',{key:iss.id,className:'issue-card resolved'},
-            h('div',{className:'ic-top'},
-              h('div',null,h('span',{className:'badge badge-ok'},iss.category),h('div',{className:'ic-lbl'},iss.label)),
-              h('span',{className:'resolved-tick'},'\u2713 '+fmtDate(iss.resolved_date))
-            ),
-            h('div',{className:'ic-meta'},'Reported '+fmtDate(iss.date))
-          );
+  return h('div', null,
+    h('div', {style:{padding:'32px 16px 16px'}},
+      h('div', {style:{fontSize:11,letterSpacing:'.12em',color:'var(--tx3)',fontWeight:600,marginBottom:10}}, 'SELECT VEHICLE'),
+      h('select', {
+        className:'pick-select',
+        value:'',
+        onChange:function(e){ onSelect(e.target.value); }
+      },
+        h('option', {value:''}, '\u2014 Pick a vehicle to begin \u2014'),
+        vehicles.map(function(v){
+          return h('option', {key:v.id, value:v.id}, v.id+' \u2014 '+v.make+' '+v.model+(v.year?' ('+v.year+')':''));
         })
       )
     ),
-    tab==='services'&&h('div',null,
-      h('button',{className:'add-btn',onClick:function(){setShowSvcForm(!showSvcForm);}},showSvcForm?'CANCEL':'+ LOG SERVICE RECORD'),
-      showSvcForm&&h('div',{className:'svc-form'},
-        h('div',{className:'field'},h('label',{className:'flabel'},'DATE'),h('input',{className:'finput',type:'date',value:sf.date,onChange:function(e){setSf(Object.assign({},sf,{date:e.target.value}));}})),
-        h('div',{className:'field'},h('label',{className:'flabel'},'ODOMETER AT SERVICE (km)'),h('input',{className:'finput',type:'number',placeholder:'e.g. 50000',value:sf.odometer,onChange:function(e){setSf(Object.assign({},sf,{odometer:e.target.value}));}})),
-        h('div',{className:'field'},h('label',{className:'flabel'},'TECHNICIAN'),h('input',{className:'finput',placeholder:'Name',value:sf.tech,onChange:function(e){setSf(Object.assign({},sf,{tech:e.target.value}));}})),
-        h('div',{className:'field'},h('label',{className:'flabel'},'WORK COMPLETED'),h('textarea',{className:'finput',rows:3,style:{resize:'vertical'},placeholder:'Oil & filter, greasing, tyres...',value:sf.completed,onChange:function(e){setSf(Object.assign({},sf,{completed:e.target.value}));}})),
-        h('div',{className:'field'},h('label',{className:'flabel'},'OUTSTANDING / NEXT SERVICE NOTES'),h('textarea',{className:'finput',rows:3,style:{resize:'vertical'},placeholder:'Items to address at next service...',value:sf.outstanding,onChange:function(e){setSf(Object.assign({},sf,{outstanding:e.target.value}));}})),
-        h('button',{className:'svc-save',onClick:saveSvc},'SAVE SERVICE RECORD')
-      ),
-      svcs.length===0&&!showSvcForm&&h('div',{className:'empty'},'No service records yet.'),
-      svcs.slice().reverse().map(function(s){
-        return h('div',{key:s.id,className:'svc-card'},
-          h('div',{className:'svc-hdr'},h('span',{className:'svc-date'},fmtDate(s.date)),h('span',{className:'svc-km'},fmtKm(s.odometer)+' km')),
-          s.technician&&h('div',{className:'svc-tech'},'Technician: '+s.technician),
-          s.completed&&h('div',{className:'svc-sect'},h('div',{className:'svc-sect-lbl'},'COMPLETED'),h('div',{className:'svc-sect-txt'},s.completed)),
-          s.outstanding&&h('div',{className:'svc-sect pend'},h('div',{className:'svc-sect-lbl'},'OUTSTANDING / NEXT SERVICE'),h('div',{className:'svc-sect-txt'},s.outstanding))
-        );
-      })
+    vehicles.length === 0 && h('div', {style:{padding:'0 16px',fontSize:13,color:'var(--tx3)'}},
+      'No vehicles set up yet. Ask your supervisor to add vehicles in the dashboard.'
+    ),
+    h('div', {style:{padding:'0 16px 24px',textAlign:'right'}},
+      h('a', {href:'/dashboard.html', style:{fontSize:12,color:'var(--tx3)',textDecoration:'none'}}, 'Supervisor \u2192')
     )
   );
 }
 
-if('serviceWorker' in navigator){
-  window.addEventListener('load',function(){
-    navigator.serviceWorker.register('/sw.js').catch(function(e){console.warn('SW failed',e);});
-  });
+// ── FORM SCREEN ──────────────────────────────────────────
+function FormScreen(props){
+  var vehicles = props.vehicles;
+  var vehicle = vehicles.find(function(v){ return v.id===props.selId; }) || {};
+
+  var cs = useState({}), checks=cs[0], setChecks=cs[1];
+  var cm = useState({}), comments=cm[0], setComments=cm[1];
+  var od = useState(''), odometer=od[0], setOdometer=od[1];
+  var nm = useState(''), name=nm[0], setName=nm[1];
+  var gc = useState(''), genComment=gc[0], setGenComment=gc[1];
+  var sv = useState(false), saving=sv[0], setSaving=sv[1];
+  var prevIssues = useState([]), prevI=prevIssues[0], setPrevI=prevIssues[1];
+  var prevKm = useState(null), pk=prevKm[0], setPrevKm=prevKm[1];
+
+  useEffect(function(){
+    // check already submitted today
+    IDB.get('ps_'+vehicle.id+'_'+today()).then(function(ex){
+      if(ex){ props.onAlready(); return; }
+    });
+    // load yesterday's km and open issues
+    IDB.get('ps_'+vehicle.id+'_'+yesterday()).then(function(ps){
+      if(ps){ setPrevKm(ps.odometer); return; }
+      if(_sb){
+        _sb.from('prestarts').select('odometer').eq('vehicle_id',vehicle.id).eq('date',yesterday()).single().then(function(r){
+          if(r.data) setPrevKm(r.data.odometer);
+        });
+      }
+    });
+    // load open issues
+    IDB.get('issues_'+vehicle.id).then(function(iss){
+      var open = (iss||[]).filter(function(i){ return !i.resolved; });
+      if(open.length > 0){ setPrevI(open); return; }
+      if(_sb){
+        _sb.from('issues').select('*').eq('vehicle_id',vehicle.id).eq('resolved',false).then(function(r){
+          if(r.data){ setPrevI(r.data); IDB.set('issues_'+vehicle.id, r.data); }
+        });
+      }
+    });
+  }, [vehicle.id]);
+
+  function isAns(id){ return checks[id]==='pass'||checks[id]==='fail'||checks[id]==='na'; }
+  var total = CHECKLIST.length;
+  var done = CHECKLIST.filter(function(i){ return isAns(i.id); }).length;
+  var critFails = CHECKLIST.filter(function(i){ return (i.cat==='A'||i.cat==='B') && checks[i.id]==='fail'; });
+
+  function submit(){
+    if(done < total){ alert('Complete all '+( total-done)+' remaining items first.'); return; }
+    if(!odometer || isNaN(odometer)){ alert("Enter today's odometer reading."); return; }
+    setSaving(true);
+    var ps = {
+      id: vehicle.id+'_'+today(),
+      vehicle_id: vehicle.id,
+      date: today(),
+      submitted_by: name || 'Unknown',
+      odometer: parseInt(odometer),
+      checks: checks,
+      comments: comments,
+      general_comment: genComment,
+      has_critical_fail: critFails.length > 0,
+      created_at: new Date().toISOString()
+    };
+    IDB.set('ps_'+vehicle.id+'_'+today(), ps).then(function(){
+      return queueSync('prestarts','ps_'+vehicle.id+'_'+today(),'vehicle_id,date');
+    }).then(function(){
+      // km history
+      return IDB.get('km_'+vehicle.id).then(function(h){
+        var hist = h||[];
+        var entry = {id:vehicle.id+'_'+today(), vehicle_id:vehicle.id, date:today(), odometer:parseInt(odometer)};
+        var idx = hist.findIndex(function(x){ return x.date===today(); });
+        if(idx>=0) hist[idx]=entry; else hist.push(entry);
+        return IDB.set('km_'+vehicle.id, hist).then(function(){
+          return queueSync('km_history','km_'+vehicle.id,'vehicle_id,date');
+        });
+      });
+    }).then(function(){
+      // log new issues from failures
+      var fails = CHECKLIST.filter(function(i){ return checks[i.id]==='fail'; });
+      if(!fails.length){ return; }
+      return IDB.get('issues_'+vehicle.id).then(function(existing){
+        var allI = existing||[];
+        fails.forEach(function(f){
+          if(!allI.find(function(x){ return !x.resolved && x.check_id===f.id; })){
+            allI.push({
+              id: uid(), vehicle_id:vehicle.id, check_id:f.id,
+              label:f.label, category:'Cat '+f.cat,
+              description: comments[f.id]||'Failed prestart \u2014 '+today(),
+              date:today(), reported_by:name||'Unknown',
+              resolved:false, created_at:new Date().toISOString()
+            });
+          }
+        });
+        return IDB.set('issues_'+vehicle.id, allI).then(function(){
+          return queueSync('issues','issues_'+vehicle.id,'id');
+        });
+      });
+    }).then(function(){
+      setSaving(false);
+      props.onDone();
+    });
+  }
+
+  var catItems = function(c){ return CHECKLIST.filter(function(i){ return i.cat===c; }); };
+  var catStyles = {
+    A:{pill:{background:'var(--fail-bg)',color:'var(--fail-tx)'},rule:'MUST NOT operate until fault rectified',ruleClass:'cat-rule-a'},
+    B:{pill:{background:'var(--warn-bg)',color:'var(--warn-tx)'},rule:'MUST NOT operate without maintenance authorisation',ruleClass:'cat-rule-b'},
+    C:{pill:{background:'var(--ok-bg)',color:'var(--ok-tx)'},rule:'CAN operate \u2014 report fault to supervisor',ruleClass:'cat-rule-c'},
+  };
+
+  return h('div', null,
+    // vehicle header strip
+    h('div', {style:{background:'var(--bg)',borderBottom:'0.5px solid var(--bd)',padding:'10px 16px',borderLeft:'3px solid '+( vehicle.color||'var(--accent)')}},
+      h('div', {style:{fontSize:20,fontWeight:700,color:vehicle.color||'var(--accent)'}}, vehicle.id),
+      h('div', {style:{fontSize:12,color:'var(--tx2)'}}, vehicle.year+' '+vehicle.make+' '+vehicle.model+' \u2014 '+fmtDate(today()))
+    ),
+
+    // outstanding issues from prev days
+    prevI.length > 0 && h('div', {className:'prev-box', style:{margin:'12px 16px 0'}},
+      h('div', {className:'prev-title'}, 'OUTSTANDING ISSUES ('+prevI.length+')'),
+      prevI.map(function(iss){
+        return h('div', {key:iss.id, className:'prev-row'},
+          h('span', {className:'prev-cat'}, iss.category),
+          h('span', null, iss.label+(iss.description?' \u2014 '+iss.description:''))
+        );
+      })
+    ),
+
+    // odometer + name
+    h('div', {className:'section'},
+      h('div', {className:'odo-card'},
+        h('div', {className:'odo-lbl'}, "TODAY'S ODOMETER (km)"),
+        h('div', {className:'odo-row'},
+          h('input', {className:'odo-in', type:'number', inputMode:'numeric', placeholder:'e.g. 45890', value:odometer, onChange:function(e){ setOdometer(e.target.value); }}),
+          pk && h('span', {className:'odo-prev'}, 'Yesterday: '+fmtKm(pk))
+        )
+      ),
+      h('div', {className:'name-card'},
+        h('div', {className:'odo-lbl'}, 'YOUR NAME'),
+        h('input', {className:'name-in', placeholder:'Enter your name...', value:name, onChange:function(e){ setName(e.target.value); }})
+      )
+    ),
+
+    // critical fail warning
+    critFails.length > 0 && h('div', {style:{margin:'12px 16px 0',background:'var(--fail-bg)',border:'1.5px solid var(--fail-bd)',borderRadius:'var(--r)',padding:'12px 14px'}},
+      h('div', {style:{fontSize:12,fontWeight:700,color:'var(--fail-tx)',marginBottom:5}}, '\u26A0 VEHICLE MUST NOT BE OPERATED'),
+      h('div', {style:{fontSize:12,color:'var(--fail-tx)',marginBottom:5}}, 'Cat A/B fault found. Do not operate. Report to supervisor or maintenance immediately.'),
+      critFails.map(function(f){
+        return h('div', {key:f.id, style:{fontSize:12,color:'var(--fail-tx)',paddingLeft:8,borderLeft:'2px solid var(--fail-bd)',marginTop:3}},
+          'Cat '+f.cat+': '+f.label
+        );
+      })
+    ),
+
+    // checklist by category
+    ['A','B','C'].map(function(cat){
+      var cs2 = catStyles[cat];
+      return h('div', {key:cat, className:'section'},
+        h('div', {className:'cat-hdr'},
+          h('span', {className:'cat-pill', style:cs2.pill}, 'CAT '+cat),
+          h('span', {className:cs2.ruleClass}, cs2.rule)
+        ),
+        h('div', {className:'checklist'},
+          catItems(cat).map(function(item){
+            var val = checks[item.id];
+            var ciCls = 'ci'+(val==='pass'?' pass':val==='fail'?' fail':val==='na'?' na':'');
+            return h('div', {key:item.id, className:ciCls},
+              h('div', {className:'ci-row'},
+                h('span', {className:item.id==='a_fire_haz'?'ci-lbl ci-fire':'ci-lbl'}, item.label),
+                h('div', {className:'ci-btns'},
+                  h('button', {className:'ck'+(val==='pass'?' p':''), onClick:function(){ setChecks(function(p){ return Object.assign({},p,{[item.id]:val==='pass'?null:'pass'}); }); }}, '\u2713'),
+                  h('button', {className:'ck'+(val==='fail'?' f':''), onClick:function(){ setChecks(function(p){ return Object.assign({},p,{[item.id]:val==='fail'?null:'fail'}); }); }}, '\u2717'),
+                  h('button', {className:'ck'+(val==='na'?' n':''), onClick:function(){ setChecks(function(p){ return Object.assign({},p,{[item.id]:val==='na'?null:'na'}); }); }}, 'N/A')
+                )
+              ),
+              (val==='fail'||comments[item.id]) && h('textarea', {
+                className:'ci-note', rows:2, placeholder:'Describe the issue...',
+                value:comments[item.id]||'',
+                onChange:function(e){ setComments(function(p){ return Object.assign({},p,{[item.id]:e.target.value}); }); }
+              })
+            );
+          })
+        )
+      );
+    }),
+
+    // general comment
+    h('div', {className:'section'},
+      h('span', {className:'sec-label'}, 'GENERAL COMMENTS'),
+      h('textarea', {className:'gen-ta', placeholder:'Any other notes about the vehicle or shift...', value:genComment, onChange:function(e){ setGenComment(e.target.value); }})
+    ),
+
+    // sticky submit bar
+    h('div', {className:'prog-wrap'},
+      h('div', {className:'prog-bar'},
+        h('div', {className:'prog-fill', style:{width:(done/total*100)+'%'}})
+      ),
+      h('button', {className:'submit-btn', disabled:saving||done<total, onClick:submit},
+        saving ? 'Saving...' : done < total ? 'Complete '+(total-done)+' remaining items' : 'SUBMIT PRESTART'
+      )
+    )
+  );
 }
-window.addEventListener('load',function(){
+
+// ── DONE ─────────────────────────────────────────────────
+function DoneScreen(props){
+  return h('div', {className:'done'},
+    h('div', {className:'done-icon'},
+      h('svg', {width:28,height:28,viewBox:'0 0 24 24',fill:'none'},
+        h('path', {d:'M5 13l4 4L19 7',stroke:'var(--ok-tx)',strokeWidth:2.5,strokeLinecap:'round',strokeLinejoin:'round'})
+      )
+    ),
+    h('div', {className:'done-title'}, 'Prestart submitted'),
+    h('div', {className:'done-sub'}, props.selId+' \u2014 '+fmtDate(today()),h('br'),h('br'),'Have a safe shift.'),
+    h('button', {className:'done-another', onClick:props.onAnother}, 'Submit another vehicle')
+  );
+}
+
+function AlreadyScreen(props){
+  return h('div', {className:'already'},
+    h('div', {style:{fontSize:40}},'✓'),
+    h('div', {className:'already-title'}, 'Already submitted today'),
+    h('div', {className:'already-sub'}, props.selId+' prestart for '+fmtDate(today())+' is done.'),
+    h('button', {className:'already-btn', onClick:props.onAnother}, 'Check another vehicle')
+  );
+}
+
+// ── MOUNT ─────────────────────────────────────────────────
+window.addEventListener('load', function(){
   ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
 });
+if('serviceWorker' in navigator){
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('/sw.js').catch(function(e){ console.warn('SW',e); });
+  });
+}
 </script>
 </body>
 </html>
