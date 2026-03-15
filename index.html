@@ -406,31 +406,60 @@ const fmtDate = d => { try { return new Date(d+'T12:00:00').toLocaleDateString('
 const fmtKm = n => Number(n).toLocaleString('en-AU');
 const uid = () => crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2)+Date.now().toString(36);
 
+// Category severity — A & B = do not operate, C = can operate but report
+const CAT_SEVERITY = { A: 'no-operate', B: 'no-operate-maint', C: 'operate-report' };
+
 const CHECKLIST = [
-  {id:'oil',label:'Engine oil level',cat:'Fluids'},
-  {id:'coolant',label:'Coolant level',cat:'Fluids'},
-  {id:'brake_fluid',label:'Brake fluid',cat:'Fluids'},
-  {id:'washer',label:'Washer fluid',cat:'Fluids'},
-  {id:'fuel',label:'Fuel level adequate',cat:'Fluids'},
-  {id:'tyre_fl',label:'Front left tyre',cat:'Tyres'},
-  {id:'tyre_fr',label:'Front right tyre',cat:'Tyres'},
-  {id:'tyre_rl',label:'Rear left tyre',cat:'Tyres'},
-  {id:'tyre_rr',label:'Rear right tyre',cat:'Tyres'},
-  {id:'tyre_spare',label:'Spare tyre',cat:'Tyres'},
-  {id:'lights_head',label:'Headlights',cat:'Lights'},
-  {id:'lights_brake',label:'Brake lights',cat:'Lights'},
-  {id:'lights_ind',label:'Indicators',cat:'Lights'},
-  {id:'lights_rev',label:'Reverse lights',cat:'Lights'},
-  {id:'seatbelts',label:'Seatbelts (all)',cat:'Safety'},
-  {id:'first_aid',label:'First aid kit',cat:'Safety'},
-  {id:'fire_ext',label:'Fire extinguisher charged',cat:'Safety'},
-  {id:'uhf',label:'UHF radio working',cat:'Safety'},
-  {id:'windscreen',label:'Windscreen (no chips)',cat:'Condition'},
-  {id:'body_damage',label:'No new body damage',cat:'Condition'},
-  {id:'horn',label:'Horn operational',cat:'Condition'},
-  {id:'rev_cam',label:'Reversing camera/sensors',cat:'Condition'},
+  // ── CATEGORY A: Walk-around — MUST NOT operate until rectified ──
+  {id:'a_isolator',      label:'Isolator function and tags',           cat:'A'},
+  {id:'a_wheel_nuts',    label:'Rims and wheel nut tension',           cat:'A'},
+  {id:'a_oil_leak',      label:'FIRE HAZARD — Oil leaks or rags in engine bay', cat:'A'},
+  {id:'a_fire_ext',      label:'Fire extinguishers and AFFF charge',   cat:'A'},
+  {id:'a_steering',      label:'Steering',                             cat:'A'},
+  {id:'a_svc_brake',     label:'Service brakes',                       cat:'A'},
+  {id:'a_park_brake',    label:'Park brake',                           cat:'A'},
+  {id:'a_radio',         label:'Two-way radio (radio check)',           cat:'A'},
+  {id:'a_seatbelts',     label:'Seat and seat belts',                  cat:'A'},
+  {id:'a_horn',          label:'Horn',                                 cat:'A'},
+  {id:'a_gauges',        label:'Gauges and alarm lights',              cat:'A'},
+  {id:'a_beacon',        label:'Beacon and LED flag/pole',             cat:'A'},
+  {id:'a_headlights',    label:'Headlights and work lights',           cat:'A'},
+  {id:'a_tail_lights',   label:'Tail and indicator lights',            cat:'A'},
+  {id:'a_rev_lights',    label:'Reverse lights and alarm',             cat:'A'},
+  {id:'a_dash_cam',      label:'Dash camera / reverse camera (if fitted)', cat:'A'},
+  {id:'a_fwd_cam',       label:'Forward facing camera',                cat:'A'},
+  // ── CATEGORY B: Functional checks — MUST NOT operate without maintenance authorisation ──
+  {id:'b_engine_oil',    label:'Engine oil level and condition',       cat:'B'},
+  {id:'b_coolant',       label:'Coolant fluid level',                  cat:'B'},
+  {id:'b_brake_fluid',   label:'Brake fluid oil level',                cat:'B'},
+  {id:'b_clutch_oil',    label:'Clutch oil level',                     cat:'B'},
+  {id:'b_power_steer',   label:'Power steering fluid level',           cat:'B'},
+  {id:'b_battery',       label:'Battery connections and security',     cat:'B'},
+  {id:'b_belts',         label:'Belt tension',                         cat:'B'},
+  {id:'b_oil_leaks',     label:'Oil leaks (non-hot zones)',            cat:'B'},
+  {id:'b_mirrors',       label:'Mirrors',                              cat:'B'},
+  {id:'b_tyre_depth',    label:'Tyre tread depth and inflation',       cat:'B'},
+  {id:'b_tyre_damage',   label:'Tyre damage',                          cat:'B'},
+  {id:'b_hand_rails',    label:'Hand rails and steps',                 cat:'B'},
+  {id:'b_aircon',        label:'Air conditioner',                      cat:'B'},
+  {id:'b_exhaust',       label:'Exhaust pipe',                         cat:'B'},
+  {id:'b_tray_barrier',  label:'Tray headboard / cargo barrier',       cat:'B'},
+  {id:'b_wheel_brace',   label:'Wheel brace and jack',                 cat:'B'},
+  {id:'b_wheel_chocks',  label:'Wheel chocks',                         cat:'B'},
+  // ── CATEGORY C: CAN operate — report fault to supervisor/leading hand ──
+  {id:'c_cabin_clean',   label:'Cabin is clean',                       cat:'C'},
+  {id:'c_equip_id',      label:'Equipment ID clean and visible',       cat:'C'},
+  {id:'c_first_aid',     label:'First aid kit',                        cat:'C'},
+  {id:'c_fuel',          label:'Fuel level',                           cat:'C'},
+  {id:'c_washers',       label:'Windscreen washer/wipers',             cat:'C'},
+  {id:'c_windows',       label:'Windows',                              cat:'C'},
+  {id:'c_body_damage',   label:'Body and tray damage',                 cat:'C'},
+  {id:'c_spare_tyre',    label:'Spare tyre',                           cat:'C'},
+  {id:'c_warn_lights',   label:'Warning lights',                       cat:'C'},
+  {id:'c_other',         label:'Other damage',                         cat:'C'},
 ];
-const CATS = ['Fluids','Tyres','Lights','Safety','Condition'];
+const CATS = ['A','B','C'];
+const CAT_LABELS = { A: 'Cat A — Walk-around', B: 'Cat B — Functional', C: 'Cat C — General' };
 const COLORS = ['#BA7517','#0F6E56','#185FA5','#993C1D','#533CC7','#1D6A8E','#7A3B69','#3B5A1F'];
 
 // ═══════════════════════════════════════════════════════
@@ -615,8 +644,10 @@ function PrestartForm({vehicle, user, onBack}) {
   const [checks, setChecks] = useState({});
   const [comments, setComments] = useState({});
   const [odometer, setOdometer] = useState('');
+  const [shift, setShift] = useState('Day');
+  const [crew, setCrew] = useState('');
   const [issues, setIssues] = useState([]);
-  const [cat, setCat] = useState('Fluids');
+  const [cat, setCat] = useState('A');
   const [status, setStatus] = useState('loading');
   const [saving, setSaving] = useState(false);
 
@@ -631,16 +662,22 @@ function PrestartForm({vehicle, user, onBack}) {
   }
 
   const catItems = c => CHECKLIST.filter(i => i.cat === c);
-  const done = CHECKLIST.filter(i => checks[i.id]).length;
-  const catDone = c => catItems(c).filter(i => checks[i.id]).length;
+  // 'pass', 'fail', or 'na' all count as answered
+  const answered = id => ['pass','fail','na'].includes(checks[id]);
+  const done = CHECKLIST.filter(i => answered(i.id)).length;
+  const catDone = c => catItems(c).filter(i => answered(i.id)).length;
   const catFail = c => catItems(c).some(i => checks[i.id] === 'fail');
 
+  // Cat A or B fails = vehicle must not be operated
+  const criticalFails = CHECKLIST.filter(i => (i.cat === 'A' || i.cat === 'B') && checks[i.id] === 'fail');
+  const hasCritical = criticalFails.length > 0;
+
   async function submit() {
-    const missing = CHECKLIST.filter(i => !checks[i.id]);
+    const missing = CHECKLIST.filter(i => !answered(i.id));
     if (missing.length > 0) { alert(`Complete all ${missing.length} remaining item(s) first.`); return; }
-    if (!odometer || isNaN(odometer)) { alert('Enter today\'s odometer reading.'); return; }
+    if (!odometer || isNaN(odometer)) { alert("Enter today's odometer reading."); return; }
     setSaving(true);
-    const ps = { id: `${vehicle.id}_${today()}`, vehicle_id: vehicle.id, date: today(), submitted_by: user, odometer: parseInt(odometer), checks, comments, created_at: new Date().toISOString() };
+    const ps = { id: `${vehicle.id}_${today()}`, vehicle_id: vehicle.id, date: today(), submitted_by: user, shift, crew, odometer: parseInt(odometer), checks, comments, has_critical_fail: hasCritical, created_at: new Date().toISOString() };
     await DB.savePrestart(ps);
     await DB.addKmEntry(vehicle.id, today(), parseInt(odometer));
     const fails = CHECKLIST.filter(i => checks[i.id] === 'fail');
@@ -648,7 +685,7 @@ function PrestartForm({vehicle, user, onBack}) {
       const all = await DB.getIssues(vehicle.id);
       for (const f of fails) {
         if (!all.find(x => !x.resolved && x.check_id === f.id)) {
-          all.push({ id: uid(), vehicle_id: vehicle.id, check_id: f.id, label: f.label, category: f.cat, description: comments[f.id] || 'Failed prestart — '+today(), date: today(), reported_by: user, resolved: false, created_at: new Date().toISOString() });
+          all.push({ id: uid(), vehicle_id: vehicle.id, check_id: f.id, label: f.label, category: 'Cat '+f.cat, description: comments[f.id] || 'Failed prestart — '+today(), date: today(), reported_by: user, resolved: false, created_at: new Date().toISOString() });
         }
       }
       await DB.saveIssues(vehicle.id, all);
@@ -673,9 +710,18 @@ function PrestartForm({vehicle, user, onBack}) {
 
   const curItems = catItems(cat);
 
+  // Category description banners
+  const CAT_DESC = {
+    A: {label:'Walk-around Inspection', rule:'Equipment MUST NOT be operated until fault is rectified or approved by maintenance', color:'var(--fail-bd)', bg:'var(--fail-bg)', tx:'var(--fail-tx)'},
+    B: {label:'Functional & Operational Checks', rule:'Equipment MUST NOT be operated without authorisation from maintenance', color:'#FAC775', bg:'var(--warn-bg)', tx:'var(--warn-tx)'},
+    C: {label:'General Condition', rule:'Equipment CAN be operated — report fault to Supervisor or Leading Hand', color:'var(--ok-bd)', bg:'var(--ok-bg)', tx:'var(--ok-tx)'},
+  };
+  const desc = CAT_DESC[cat];
+
   return React.createElement('div', {className:'page'},
     React.createElement('button', {className:'back', onClick:onBack}, '← Back'),
-    React.createElement('div', {className:'card', style:{borderLeft:'3px solid '+vehicle.color,marginBottom:10}},
+    // Header card
+    React.createElement('div', {className:'card', style:{borderLeft:'3px solid '+vehicle.color, marginBottom:10}},
       React.createElement('div', {className:'card-p'},
         React.createElement('div', {className:'form-hdr'},
           React.createElement('div', null,
@@ -683,9 +729,26 @@ function PrestartForm({vehicle, user, onBack}) {
             React.createElement('div', {style:{fontSize:12,color:'var(--tx2)'}}, vehicle.year+' '+vehicle.make+' '+vehicle.model)
           ),
           React.createElement('div', {className:'fh-date'}, 'Date', React.createElement('strong', null, fmtDate(today())))
+        ),
+        // Shift + Crew row
+        React.createElement('div', {style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}},
+          React.createElement('div', null,
+            React.createElement('div', {className:'odo-lbl', style:{marginBottom:4}}, 'SHIFT'),
+            React.createElement('div', {style:{display:'flex',gap:6}},
+              ['Day','Night'].map(s => React.createElement('button', {key:s,
+                onClick:()=>setShift(s),
+                style:{flex:1,padding:'7px 0',border:'0.5px solid '+(shift===s?'var(--accent)':'var(--bd2)'),borderRadius:'var(--r)',background:shift===s?'var(--accent)':'var(--bg2)',color:shift===s?'#fff':'var(--tx2)',fontSize:12,fontWeight:shift===s?700:400,cursor:'pointer'}
+              }, s))
+            )
+          ),
+          React.createElement('div', null,
+            React.createElement('div', {className:'odo-lbl', style:{marginBottom:4}}, 'CREW'),
+            React.createElement('input', {className:'finput', placeholder:'Crew name/no.', value:crew, onChange:e=>setCrew(e.target.value), style:{padding:'8px 10px'}})
+          )
         )
       )
     ),
+    // Outstanding issues banner
     issues.length > 0 && React.createElement('div', {className:'issues-banner'},
       React.createElement('div', {className:'ib-title'}, `OUTSTANDING ISSUES (${issues.length})`),
       issues.map(iss => React.createElement('div', {key:iss.id, className:'ib-row'},
@@ -695,21 +758,36 @@ function PrestartForm({vehicle, user, onBack}) {
         iss.description && React.createElement('div', {className:'ib-note'}, iss.description)
       ))
     ),
+    // Critical fail warning
+    hasCritical && React.createElement('div', {style:{background:'var(--fail-bg)',border:'1.5px solid var(--fail-bd)',borderRadius:'var(--r)',padding:'12px 14px',marginBottom:10}},
+      React.createElement('div', {style:{fontSize:12,fontWeight:700,color:'var(--fail-tx)',letterSpacing:'.08em',marginBottom:6}}, '⚠ VEHICLE MUST NOT BE OPERATED'),
+      React.createElement('div', {style:{fontSize:12,color:'var(--fail-tx)',opacity:.85}}, 'Cat A/B fault(s) found. Report to Supervisor or Maintenance before operating.'),
+      criticalFails.map(f => React.createElement('div', {key:f.id, style:{fontSize:12,color:'var(--fail-tx)',marginTop:4,paddingLeft:8,borderLeft:'2px solid var(--fail-bd)'}}, 'Cat '+f.cat+': '+f.label))
+    ),
+    // Odometer
     React.createElement('div', {className:'odo-box'},
       React.createElement('div', {className:'odo-lbl'}, "TODAY'S ODOMETER (km)"),
       React.createElement('input', {className:'odo-in', type:'number', inputMode:'numeric', placeholder:'e.g. 45890', value:odometer, onChange:e=>setOdometer(e.target.value)})
     ),
+    // Progress
     React.createElement('div', {className:'prog'},
       React.createElement('div', {className:'prog-bar'}, React.createElement('div', {className:'prog-fill', style:{width:(done/CHECKLIST.length*100)+'%'}})),
       React.createElement('div', {className:'prog-txt'}, done+'/'+CHECKLIST.length+' complete')
     ),
+    // Category tabs
     React.createElement('div', {className:'cat-tabs'},
       CATS.map(c => {
         const d = catDone(c), t = catItems(c).length, f = catFail(c);
         const cls = 'ctab'+(c===cat?' on':'')+(f?' fail':'')+(d===t&&!f?' done':'');
-        return React.createElement('button', {key:c, className:cls, onClick:()=>setCat(c)}, c, ' ', React.createElement('span', {style:{opacity:.6}}, d+'/'+t));
+        return React.createElement('button', {key:c, className:cls, onClick:()=>setCat(c)},
+          CAT_LABELS[c], ' ', React.createElement('span', {style:{opacity:.6}}, d+'/'+t));
       })
     ),
+    // Category severity banner
+    React.createElement('div', {style:{background:desc.bg, border:'0.5px solid '+desc.color, borderRadius:'var(--r)', padding:'8px 12px', marginBottom:10, fontSize:11, color:desc.tx, lineHeight:1.5}},
+      React.createElement('strong', null, desc.label), ' — ', desc.rule
+    ),
+    // Checklist items
     React.createElement('div', {className:'checklist'},
       curItems.map(item => React.createElement(CheckItem, {key:item.id, item, val:checks[item.id], comment:comments[item.id]||'',
         onChange:v=>setChecks(p=>({...p,[item.id]:v})),
@@ -723,12 +801,17 @@ function PrestartForm({vehicle, user, onBack}) {
 }
 
 function CheckItem({item, val, comment, onChange, onComment}) {
-  return React.createElement('div', {className:'ci'+(val==='pass'?' pass':val==='fail'?' fail':'')},
+  // NA option available for items that may not apply (e.g. dash cam if not fitted)
+  const isFireHazard = item.id === 'a_oil_leak';
+  return React.createElement('div', {className:'ci'+(val==='pass'?' pass':val==='fail'?' fail':val==='na'?' na':''),
+    style: val==='na' ? {opacity:.55, border:'0.5px solid var(--bd)'} : {}},
     React.createElement('div', {className:'ci-top'},
-      React.createElement('span', {className:'ci-lbl'}, item.label),
+      React.createElement('span', {className:'ci-lbl', style:isFireHazard?{color:'var(--fail-tx)',fontWeight:600}:{}}, item.label),
       React.createElement('div', {className:'ci-btns'},
-        React.createElement('button', {className:'ck'+(val==='pass'?' p':''), onClick:()=>onChange(val==='pass'?null:'pass')}, '✓'),
-        React.createElement('button', {className:'ck'+(val==='fail'?' f':''), onClick:()=>onChange(val==='fail'?null:'fail')}, '✗')
+        React.createElement('button', {className:'ck'+(val==='pass'?' p':''), title:'OK', onClick:()=>onChange(val==='pass'?null:'pass')}, '✓'),
+        React.createElement('button', {className:'ck'+(val==='fail'?' f':''), title:'Fault', onClick:()=>onChange(val==='fail'?null:'fail')}, '✗'),
+        React.createElement('button', {className:'ck'+(val==='na'?' na-on':''), title:'Not applicable', onClick:()=>onChange(val==='na'?null:'na'),
+          style:{fontSize:11,fontWeight:700,color:val==='na'?'#fff':'var(--tx3)', background:val==='na'?'var(--tx2)':'var(--bg2)', border:'0.5px solid var(--bd2)', width:36, height:46, borderRadius:'var(--r)'}}, 'N/A')
       )
     ),
     (val==='fail'||comment) && React.createElement('textarea', {className:'ci-comment', rows:2, placeholder:'Describe the issue...', value:comment, onChange:e=>onComment(e.target.value)})

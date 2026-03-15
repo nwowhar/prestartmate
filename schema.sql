@@ -22,9 +22,12 @@ CREATE TABLE IF NOT EXISTS prestarts (
   vehicle_id TEXT NOT NULL REFERENCES vehicles(id) ON DELETE CASCADE,
   date DATE NOT NULL,
   submitted_by TEXT NOT NULL,
+  shift TEXT DEFAULT 'Day',
+  crew TEXT,
   odometer INTEGER NOT NULL,
   checks JSONB NOT NULL DEFAULT '{}',
   comments JSONB NOT NULL DEFAULT '{}',
+  has_critical_fail BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(vehicle_id, date)
 );
