@@ -478,7 +478,7 @@ function VehicleDetail(props){
         _sb.from('issues').select('*').eq('vehicle_id',vehicle.id).order('date',{ascending:false}),
         _sb.from('km_history').select('*').eq('vehicle_id',vehicle.id).order('date',{ascending:true}),
         _sb.from('service_records').select('*').eq('vehicle_id',vehicle.id).order('date',{ascending:false}),
-        _sb.from('prestarts').select('id,date,submitted_by,odometer,has_critical_fail,general_comment,checks,comments').eq('vehicle_id',vehicle.id).order('date',{ascending:false}).limit(90)
+        _sb.from('prestarts').select('*').eq('vehicle_id',vehicle.id).order('date',{ascending:false}).limit(90)
       ]).then(function(results){
         var r0=results[0],r1=results[1],r2=results[2],r3=results[3];
         if(r0.error) console.error('issues fetch:',r0.error.message);
