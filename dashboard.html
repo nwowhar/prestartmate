@@ -654,15 +654,16 @@ function VehicleDetail(props){
               catItems.map(function(item){
                 var val = selectedPs.checks ? selectedPs.checks[item.id] : null;
                 var comment = selectedPs.comments ? selectedPs.comments[item.id] : null;
-                if(!val) return null;
-                var rowBg = val==='fail'?'var(--fail-bg)':val==='na'?'var(--bg2)':'transparent';
-                var icon = val==='pass'?'\u2713':val==='fail'?'\u2717':'N/A';
+                var rowBg = val==='fail'?'var(--fail-bg)':val==='pass'?'var(--ok-bg)':val==='na'?'var(--bg2)':'var(--bg2)';
+                var rowBd = val==='fail'?'var(--fail-bd)':val==='pass'?'var(--ok-bd)':'var(--bd)';
+                var icon = val==='pass'?'\u2713':val==='fail'?'\u2717':val==='na'?'N/A':'\u2014';
                 var iconColor = val==='pass'?'var(--ok-tx)':val==='fail'?'var(--fail-tx)':'var(--tx3)';
-                return h('div',{key:item.id,style:{padding:'7px 14px',background:rowBg,borderTop:'0.5px solid var(--bd)',display:'flex',gap:10,alignItems:'flex-start'}},
-                  h('span',{style:{fontSize:13,fontWeight:700,color:iconColor,flexShrink:0,width:28}},icon),
+                var lblColor = val==='pass'?'var(--ok-tx)':val==='fail'?'var(--fail-tx)':'var(--tx3)';
+                return h('div',{key:item.id,style:{padding:'8px 14px',background:rowBg,borderTop:'0.5px solid '+rowBd,display:'flex',gap:10,alignItems:'flex-start'}},
+                  h('span',{style:{fontSize:13,fontWeight:700,color:iconColor,flexShrink:0,width:30,paddingTop:1}},icon),
                   h('div',null,
-                    h('div',{style:{fontSize:13,color:val==='fail'?'var(--fail-tx)':'var(--tx)'}},item.label),
-                    comment && h('div',{style:{fontSize:12,color:'var(--fail-tx)',marginTop:2}},comment)
+                    h('div',{style:{fontSize:13,color:lblColor}},item.label),
+                    comment && h('div',{style:{fontSize:12,color:'var(--fail-tx)',marginTop:3,fontStyle:'italic',paddingLeft:4,borderLeft:'2px solid var(--fail-bd)'}},'Note: '+comment)
                   )
                 );
               })
