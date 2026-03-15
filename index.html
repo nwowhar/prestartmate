@@ -138,7 +138,7 @@ button,input,textarea,select{font-family:inherit;font-size:15px;color:var(--tx)}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.50.0/dist/umd/supabase.min.js"></script>
 <script>
 // ── CONFIG ──────────────────────────────────────────────
 var SUPABASE_URL = 'https://gcnnictyxwxwtahmgidq.supabase.co';
@@ -184,10 +184,13 @@ function syncFlush(){
           if(!data) return IDB.qdel(item.qid);
           var payload = Array.isArray(data) ? data : [data];
           return _sb.from(item.table).upsert(payload,{onConflict:item.conflict||'id'}).then(function(r){
-            if(r.error) throw r.error;
+            if(r.error){
+              console.error('Supabase upsert error ('+item.table+'):', r.error.message, r.error);
+              throw r.error;
+            }
             return IDB.qdel(item.qid);
           });
-        }).catch(function(e){ console.warn('sync fail',e.message); });
+        }).catch(function(e){ console.error('sync fail ('+item.table+'):', e.message||e); });
       });
     });
     return chain;
@@ -278,13 +281,15 @@ function App(){
     onPendingChange = setPending;
     _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     _sb.from('vehicles').select('*').order('id').then(function(r){
+      if(r.error) console.error('Supabase error:', r.error.message, r.error.code);
       if(r.data && r.data.length > 0){
         IDB.set('vehicles', r.data).then(function(){ setVehicles(r.data); });
       } else {
         IDB.get('vehicles').then(function(v){ if(v) setVehicles(v); });
       }
       setScreen('pick');
-    }).catch(function(){
+    }).catch(function(e){
+      console.error('Supabase fetch failed:', e);
       IDB.get('vehicles').then(function(v){ if(v) setVehicles(v); setScreen('pick'); });
     });
     window.addEventListener('online',  function(){ setOnline(true);  syncFlush(); });
