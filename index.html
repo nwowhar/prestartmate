@@ -142,7 +142,7 @@ button,input,textarea,select{font-family:inherit;font-size:15px;color:var(--tx)}
 <script>
 // ── CONFIG ──────────────────────────────────────────────
 var SUPABASE_URL = 'https://gcnnictyxwxwtahmgidq.supabase.co';
-var SUPABASE_KEY = 'sb_publishable_WVOZIN8HnFgldl4_wkoHvQ_EYLPplKo';
+var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdjbm5pY3R5eHd4d3RhaG1naWRxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1MzExMjEsImV4cCI6MjA4OTEwNzEyMX0.spm3-fbxNfUNhaJHRaMwQEdXfsxx30qZGWv2qAM17z8';
 // ────────────────────────────────────────────────────────
 
 var _sb = null;
@@ -458,43 +458,58 @@ function FormScreen(props){
       has_critical_fail: critFails.length > 0,
       created_at: new Date().toISOString()
     };
-    IDB.set('ps_'+vehicle.id+'_'+today(), ps).then(function(){
-      return queueSync('prestarts','ps_'+vehicle.id+'_'+today(),'vehicle_id,date');
-    }).then(function(){
-      // km history
-      return IDB.get('km_'+vehicle.id).then(function(h){
-        var hist = h||[];
-        var entry = {id:vehicle.id+'_'+today(), vehicle_id:vehicle.id, date:today(), odometer:parseInt(odometer)};
-        var idx = hist.findIndex(function(x){ return x.date===today(); });
-        if(idx>=0) hist[idx]=entry; else hist.push(entry);
-        return IDB.set('km_'+vehicle.id, hist).then(function(){
-          return queueSync('km_history','km_'+vehicle.id,'vehicle_id,date');
-        });
+    var kmEntry = {id:vehicle.id+'_'+today(), vehicle_id:vehicle.id, date:today(), odometer:parseInt(odometer)};
+
+    // Save to IDB immediately (offline safe)
+    IDB.set('ps_'+vehicle.id+'_'+today(), ps);
+    IDB.get('km_'+vehicle.id).then(function(h){
+      var hist=h||[];
+      var idx=hist.findIndex(function(x){return x.date===today();});
+      if(idx>=0)hist[idx]=kmEntry;else hist.push(kmEntry);
+      IDB.set('km_'+vehicle.id,hist);
+    });
+
+    // Push directly to Supabase right now
+    var pushToSupabase = function(){
+      if(!_sb) return Promise.resolve({error:{message:'No Supabase client'}});
+      return _sb.from('prestarts').upsert([ps],{onConflict:'id'}).then(function(r){
+        if(r.error){ console.error('Prestart upsert failed:',r.error.message,r.error); return r; }
+        console.log('Prestart saved to Supabase OK');
+        return _sb.from('km_history').upsert([kmEntry],{onConflict:'id'});
       });
-    }).then(function(){
-      // log new issues from failures
-      var fails = CHECKLIST.filter(function(i){ return checks[i.id]==='fail'; });
-      if(!fails.length){ return; }
+    };
+
+    // log new issues from failures
+    var fails = CHECKLIST.filter(function(i){ return checks[i.id]==='fail'; });
+    var saveIssues = function(){
+      if(!fails.length) return Promise.resolve();
       return IDB.get('issues_'+vehicle.id).then(function(existing){
-        var allI = existing||[];
+        var allI=existing||[];
         fails.forEach(function(f){
-          if(!allI.find(function(x){ return !x.resolved && x.check_id===f.id; })){
+          if(!allI.find(function(x){return !x.resolved&&x.check_id===f.id;})){
             allI.push({
-              id: uid(), vehicle_id:vehicle.id, check_id:f.id,
-              label:f.label, category:'Cat '+f.cat,
-              description: comments[f.id]||'Failed prestart \u2014 '+today(),
-              date:today(), reported_by:name||'Unknown',
-              resolved:false, created_at:new Date().toISOString()
+              id:uid(),vehicle_id:vehicle.id,check_id:f.id,
+              label:f.label,category:'Cat '+f.cat,
+              description:comments[f.id]||'Failed prestart \u2014 '+today(),
+              date:today(),reported_by:name||'Unknown',
+              resolved:false,created_at:new Date().toISOString()
             });
           }
         });
-        return IDB.set('issues_'+vehicle.id, allI).then(function(){
-          return queueSync('issues','issues_'+vehicle.id,'id');
+        IDB.set('issues_'+vehicle.id,allI);
+        if(_sb) _sb.from('issues').upsert(allI,{onConflict:'id'}).then(function(r){
+          if(r.error) console.error('Issues upsert failed:',r.error.message);
         });
       });
-    }).then(function(){
+    };
+
+    Promise.all([pushToSupabase(), saveIssues()]).then(function(){
       setSaving(false);
       props.onDone();
+    }).catch(function(e){
+      console.error('Submit error:',e);
+      setSaving(false);
+      props.onDone(); // still mark as done — saved to IDB
     });
   }
 
