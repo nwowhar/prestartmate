@@ -211,8 +211,8 @@ window.addEventListener('online', syncFlush);
 document.addEventListener('visibilitychange', function(){ if(document.visibilityState==='visible') syncFlush(); });
 
 // ── HELPERS ──────────────────────────────────────────────
-function today(){ return new Date().toISOString().split('T')[0]; }
-function yesterday(){ var d=new Date(); d.setDate(d.getDate()-1); return d.toISOString().split('T')[0]; }
+function today(){ var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function yesterday(){ var d=new Date(); d.setDate(d.getDate()-1); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 function fmtDate(d){ try{ return new Date(d+'T12:00:00').toLocaleDateString('en-AU',{weekday:'short',day:'2-digit',month:'short',year:'numeric'}); }catch(e){ return d; } }
 function fmtKm(n){ return Number(n).toLocaleString('en-AU'); }
 function uid(){ return crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2)+Date.now().toString(36); }
