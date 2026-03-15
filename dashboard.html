@@ -176,7 +176,7 @@ var IDB=(function(){
 
 // ── APP ──────────────────────────────────────────────────
 function App(){
-  var pl = useState(false), pinLocked=pl[0], setPinLocked=pl[1];
+  var pl = useState(true), pinLocked=pl[0], setPinLocked=pl[1];
   var pi = useState(''), pinIn=pi[0], setPinIn=pi[1];
   var pe = useState(''), pinErr=pe[0], setPinErr=pe[1];
   var vs = useState([]), vehicles=vs[0], setVehicles=vs[1];
@@ -186,7 +186,6 @@ function App(){
 
   useEffect(function(){
     _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    setPinLocked(true); // always start locked
     window.addEventListener('online', function(){ setOnline(true); });
     window.addEventListener('offline',function(){ setOnline(false); });
   },[]);
