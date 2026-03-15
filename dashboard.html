@@ -39,8 +39,9 @@ button,input,textarea,select{font-family:inherit;font-size:14px;color:var(--tx)}
 .sync-dot{width:7px;height:7px;border-radius:50%}
 .s-ok{background:#2da866}.s-pend{background:#CF8C00}.s-off{background:#aaa}
 
-/* Pin screen */
-.pin-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:90vh;gap:18px;padding:40px 24px;text-align:center}
+/* PIN overlay - shown before React mounts */
+.pin-overlay{position:fixed;inset:0;background:var(--bg3);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:40px 24px;text-align:center;z-index:9999}
+.pin-overlay.hidden{display:none}
 .pin-sup{font-size:11px;letter-spacing:.14em;color:var(--tx3);font-weight:600}
 .pin-h{font-size:28px;font-weight:700}
 .pin-sub{font-size:13px;color:var(--tx2)}
@@ -143,9 +144,16 @@ button,input,textarea,select{font-family:inherit;font-size:14px;color:var(--tx)}
 </style>
 </head>
 <body>
-<div class="wrap" id="root">
-  <div style="display:flex;align-items:center;justify-content:center;height:80vh;color:var(--tx3);font-size:13px">Loading...</div>
+<div id="pin-overlay" class="pin-overlay">
+  <div style="font-size:11px;letter-spacing:.14em;color:var(--tx3);font-weight:600">FLEET MANAGEMENT</div>
+  <div style="font-size:28px;font-weight:700">Supervisor Dashboard</div>
+  <div style="font-size:13px;color:var(--tx2)">Enter your PIN to continue</div>
+  <input id="pin-input" class="pin-in" type="password" inputmode="numeric" maxlength="6" placeholder="••••" autofocus>
+  <div id="pin-err" style="font-size:12px;color:var(--fail-tx);min-height:16px"></div>
+  <button id="pin-btn" class="pin-btn">UNLOCK</button>
+  <a href="/" class="pin-back">← Back to prestart</a>
 </div>
+<div id="root" style="display:none"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
@@ -174,74 +182,77 @@ var IDB=(function(){
   return{get:get,set:set};
 })();
 
-// ── APP ──────────────────────────────────────────────────
-function App(){
-  var pl = useState(true), pinLocked=pl[0], setPinLocked=pl[1];
-  var pi = useState(''), pinIn=pi[0], setPinIn=pi[1];
-  var pe = useState(''), pinErr=pe[0], setPinErr=pe[1];
-  var vs = useState([]), vehicles=vs[0], setVehicles=vs[1];
-  var sc = useState('loading'), screen=sc[0], setScreen=sc[1];
-  var dt = useState(null), detail=dt[0], setDetail=dt[1];
-  var oo = useState(navigator.onLine), online=oo[0], setOnline=oo[1];
+// ── PIN GATE — pure JS, runs before React ────────────────
+(function(){
+  var overlay = document.getElementById('pin-overlay');
+  var root    = document.getElementById('root');
+  var input   = document.getElementById('pin-input');
+  var errEl   = document.getElementById('pin-err');
+  var btn     = document.getElementById('pin-btn');
 
-  useEffect(function(){
-    _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    window.addEventListener('online', function(){ setOnline(true); });
-    window.addEventListener('offline',function(){ setOnline(false); });
-  },[]);
-
-  function unlock(){
-    if(pinIn === SUPERVISOR_PIN){
-      setPinLocked(false); setPinIn(''); setPinErr('');
-      loadFleet();
+  function attempt(){
+    if(input.value === SUPERVISOR_PIN){
+      overlay.classList.add('hidden');
+      root.style.display = '';
+      mountApp();
     } else {
-      setPinErr('Incorrect PIN'); setPinIn('');
+      errEl.textContent = 'Incorrect PIN';
+      input.value = '';
+      input.focus();
+      setTimeout(function(){ errEl.textContent=''; }, 2000);
     }
   }
+  btn.addEventListener('click', attempt);
+  input.addEventListener('keydown', function(e){ if(e.key==='Enter') attempt(); });
+})();
 
-  function loadFleet(){
-    setScreen('loading');
-    _sb.from('vehicles').select('*').order('id').then(function(r){
-      if(r.data) setVehicles(r.data);
-      setScreen('fleet');
-    }).catch(function(){ setScreen('fleet'); });
-  }
+// ── APP (only mounts after PIN is correct) ────────────────
+function mountApp(){
+  _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  function openDetail(id){ setDetail(id); setScreen('detail'); }
-  function backToFleet(){ setDetail(null); loadFleet(); }
+  function App(){
+    var vs = useState([]), vehicles=vs[0], setVehicles=vs[1];
+    var sc = useState('loading'), screen=sc[0], setScreen=sc[1];
+    var dt = useState(null), detail=dt[0], setDetail=dt[1];
+    var oo = useState(navigator.onLine), online=oo[0], setOnline=oo[1];
 
-  if(pinLocked){
-    return h('div',{className:'pin-screen'},
-      h('div',{className:'pin-sup'},'FLEET MANAGEMENT'),
-      h('div',{className:'pin-h'},'Supervisor Dashboard'),
-      h('div',{className:'pin-sub'},'Enter your PIN to continue'),
-      h('input',{className:'pin-in',type:'password',inputMode:'numeric',maxLength:6,placeholder:'\u2022\u2022\u2022\u2022',value:pinIn,
-        onChange:function(e){setPinIn(e.target.value);setPinErr('');},
-        onKeyDown:function(e){if(e.key==='Enter')unlock();},
-        autoFocus:true}),
-      pinErr&&h('div',{className:'pin-err'},pinErr),
-      h('button',{className:'pin-btn',disabled:!pinIn,onClick:unlock},'UNLOCK'),
-      h('a',{href:'/',className:'pin-back'},'\u2190 Back to prestart')
+    useEffect(function(){
+      window.addEventListener('online',  function(){ setOnline(true); });
+      window.addEventListener('offline', function(){ setOnline(false); });
+      loadFleet();
+    },[]);
+
+    function loadFleet(){
+      setScreen('loading');
+      _sb.from('vehicles').select('*').order('id').then(function(r){
+        if(r.data) setVehicles(r.data);
+        setScreen('fleet');
+      }).catch(function(){ setScreen('fleet'); });
+    }
+
+    function openDetail(id){ setDetail(id); setScreen('detail'); }
+    function backToFleet(){ setDetail(null); loadFleet(); }
+
+    var syncCls = !online ? 'sync-dot s-off' : 'sync-dot s-ok';
+
+    return h('div',{className:'wrap'},
+      h('div',{className:'hdr'},
+        h('div',{className:'hdr-brand'},
+          h('span',{className:'hdr-pill'},'FLEET'),
+          h('span',{className:'hdr-title'},'Dashboard')
+        ),
+        h('div',{className:'hdr-right'},
+          h('a',{href:'/',className:'hdr-link'},'\u2190 Prestart'),
+          h('span',{className:syncCls})
+        )
+      ),
+      screen==='loading' && h('div',{style:{padding:40,textAlign:'center',color:'var(--tx3)',fontSize:13}},'Loading...'),
+      screen==='fleet'   && h(FleetOverview,{vehicles:vehicles,setVehicles:setVehicles,onOpen:openDetail,reload:loadFleet}),
+      screen==='detail'  && h(VehicleDetail,{vehicleId:detail,vehicles:vehicles,setVehicles:setVehicles,onBack:backToFleet})
     );
   }
 
-  var syncCls = !online ? 'sync-dot s-off' : 'sync-dot s-ok';
-
-  return h('div',null,
-    h('div',{className:'hdr'},
-      h('div',{className:'hdr-brand'},
-        h('span',{className:'hdr-pill'},'FLEET'),
-        h('span',{className:'hdr-title'},'Dashboard')
-      ),
-      h('div',{className:'hdr-right'},
-        h('a',{href:'/',className:'hdr-link'},'\u2190 Prestart'),
-        h('span',{className:syncCls})
-      )
-    ),
-    screen==='loading' && h('div',{style:{padding:40,textAlign:'center',color:'var(--tx3)',fontSize:13}},'Loading...'),
-    screen==='fleet'   && h(FleetOverview,{vehicles:vehicles,setVehicles:setVehicles,onOpen:openDetail,reload:loadFleet}),
-    screen==='detail'  && h(VehicleDetail,{vehicleId:detail,vehicles:vehicles,setVehicles:setVehicles,onBack:backToFleet})
-  );
+  ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
 }
 
 // ── FLEET OVERVIEW ───────────────────────────────────────
@@ -585,9 +596,9 @@ function SvgChart(props){
 }
 
 // ── MOUNT ─────────────────────────────────────────────────
-window.addEventListener('load',function(){
-  ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
-});
+// mountApp() is called by the PIN gate above after correct PIN entry
+// It needs to close over App which is defined inside mountApp
+// The PIN gate script runs on load automatically via the IIFE above
 </script>
 </body>
 </html>
