@@ -355,9 +355,6 @@ function PickScreen(props){
     ),
     vehicles.length === 0 && h('div', {style:{padding:'0 16px',fontSize:13,color:'var(--tx3)'}},
       'No vehicles set up yet. Ask your supervisor to add vehicles in the dashboard.'
-    ),
-    h('div', {style:{padding:'0 16px 24px',textAlign:'right'}},
-      h('a', {href:'/dashboard.html', style:{fontSize:12,color:'var(--tx3)',textDecoration:'none'}}, 'Supervisor \u2192')
     )
   );
 }
