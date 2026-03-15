@@ -50,12 +50,6 @@ input,textarea,select,button{font-family:inherit;font-size:14px;color:var(--tx)}
 .abtn{width:100%;max-width:300px;padding:13px;background:var(--accent);color:#fff;border:none;border-radius:var(--r);font-size:12px;letter-spacing:.1em;font-weight:700;cursor:pointer}
 .abtn:disabled{opacity:.35;cursor:default}
 .abtn-ghost{width:100%;max-width:300px;padding:12px;background:transparent;border:0.5px solid var(--bd2);border-radius:var(--r);color:var(--tx2);font-size:12px;letter-spacing:.06em;cursor:pointer}
-.setup{max-width:500px;margin:0 auto;padding:24px 16px;display:flex;flex-direction:column;gap:16px}
-.setup-card{background:var(--bg);border:0.5px solid var(--bd);border-radius:var(--rl);padding:18px}
-.setup-title{font-size:15px;font-weight:600;margin-bottom:4px}
-.setup-sub{font-size:12px;color:var(--tx2);margin-bottom:14px;line-height:1.6}
-.step{display:flex;align-items:flex-start;gap:10px;font-size:13px;color:var(--tx2);line-height:1.6;margin-bottom:8px}
-.step-n{background:var(--accent);color:#fff;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;margin-top:2px}
 .field{display:flex;flex-direction:column;gap:4px;margin-bottom:10px}
 .flabel{font-size:10px;letter-spacing:.1em;color:var(--tx3);font-weight:600}
 .finput{padding:9px 12px;border:0.5px solid var(--bd2);border-radius:var(--r);background:var(--bg2);color:var(--tx);outline:none;font-size:13px;width:100%}
@@ -184,6 +178,12 @@ input,textarea,select,button{font-family:inherit;font-size:14px;color:var(--tx)}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
 <script>
+// ── CONFIGURATION ── swap these two lines with your Supabase values ──
+var SUPABASE_URL = 'https://YOUR_PROJECT.supabase.co';
+var SUPABASE_KEY = 'YOUR_ANON_KEY';
+var SUPERVISOR_PIN = '1111';
+// ─────────────────────────────────────────────────────────────────────
+
 var IDB=(function(){
   var _db=null;
   function open(){
@@ -387,99 +387,86 @@ function App(){
   var vs=useState([]),vehicles=vs[0],setVehicles=vs[1];
   var ps=useState(0),pendingSync=ps[0],setPendingSync=ps[1];
   var ol=useState(navigator.onLine),isOnline=ol[0],setIsOnline=ol[1];
+  var sp=useState(false),showPin=sp[0],setShowPin=sp[1];
+  var pi=useState(''),pinIn=pi[0],setPinIn=pi[1];
+  var pe=useState(''),pinErr=pe[0],setPinErr=pe[1];
+
   useEffect(function(){
-    init();
+    Sync.init(SUPABASE_URL,SUPABASE_KEY,setPendingSync);
+    IDB.queueCount().then(setPendingSync);
+    DB.pullAll().then(function(){
+      return DB.getVehicles().then(function(v){setVehicles(v);setStep('name');Sync.process();});
+    }).catch(function(){
+      DB.getVehicles().then(function(v){setVehicles(v);setStep('name');});
+    });
     window.addEventListener('online',function(){setIsOnline(true);});
     window.addEventListener('offline',function(){setIsOnline(false);});
   },[]);
-  function init(){
-    var cfg=getConfig();
-    if(!cfg){setStep('setup');return;}
-    Sync.init(cfg.url,cfg.key,setPendingSync);
-    IDB.queueCount().then(setPendingSync);
-    DB.pullAll().then(function(){
-      return DB.getVehicles().then(function(v){setVehicles(v);setStep('auth');Sync.process();});
-    });
-  }
-  function getConfig(){try{var c=localStorage.getItem('sb_cfg');return c?JSON.parse(c):null;}catch(e){return null;}}
-  function handleSetup(url,key){
-    localStorage.setItem('sb_cfg',JSON.stringify({url:url,key:key}));
-    Sync.init(url,key,setPendingSync);
-    DB.pullAll().then(function(){return DB.getVehicles().then(function(v){setVehicles(v);setStep('auth');});});
-  }
+
   function refreshVehicles(){DB.getVehicles().then(setVehicles);}
-  if(step==='loading')return null;
-  if(step==='setup')return h(Setup,{onSetup:handleSetup});
-  if(!user){
+
+  function submitPin(){
+    if(pinIn===SUPERVISOR_PIN){
+      setShowPin(false);setPinIn('');setPinErr('');
+      setUser('Supervisor');setView('dashboard');
+    } else {
+      setPinErr('Incorrect PIN');setPinIn('');
+    }
+  }
+
+  if(step==='loading')return h('div',{style:{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',color:'var(--tx3)',fontSize:13}},'Loading...');
+
+  // PIN overlay for supervisor
+  if(showPin){
+    return h('div',{className:'auth'},
+      h('div',{className:'auth-sup'},'SUPERVISOR ACCESS'),
+      h('div',{className:'auth-h',style:{fontSize:22}},'Enter PIN'),
+      h('input',{className:'auth-input',type:'password',inputMode:'numeric',maxLength:6,placeholder:'\u2022\u2022\u2022\u2022',value:pinIn,
+        onChange:function(e){setPinIn(e.target.value);setPinErr('');},
+        onKeyDown:function(e){if(e.key==='Enter')submitPin();},
+        autoFocus:true}),
+      pinErr&&h('div',{style:{fontSize:12,color:'var(--fail-tx)'}},'Incorrect PIN'),
+      h('button',{className:'abtn',disabled:!pinIn,onClick:submitPin},'UNLOCK DASHBOARD'),
+      h('button',{className:'abtn-ghost',onClick:function(){setShowPin(false);setPinIn('');setPinErr('');}}, 'CANCEL')
+    );
+  }
+
+  // Worker name entry
+  if(step==='name'&&!user){
     return h('div',{className:'auth'},
       h('div',{className:'auth-sup'},'EXPLORATION FLEET MANAGEMENT'),
-      h('div',{className:'auth-h'},'Prestart System'),
-      h('div',{className:'auth-sub'},'Enter your name to continue'),
+      h('div',{className:'auth-h'},'Vehicle Prestart'),
+      h('div',{className:'auth-sub'},'Enter your name to begin'),
       h('input',{className:'auth-input',placeholder:'Your name...',value:nameIn,
         onChange:function(e){setNameIn(e.target.value);},
         onKeyDown:function(e){if(e.key==='Enter'&&nameIn.trim())setUser(nameIn.trim());}}),
       h('button',{className:'abtn',disabled:!nameIn.trim(),onClick:function(){setUser(nameIn.trim());}},
-        'CONTINUE AS WORKER'),
-      h('button',{className:'abtn-ghost',onClick:function(){setUser('Supervisor');setView('dashboard');}},
-        'SUPERVISOR / MECHANIC DASHBOARD')
+        'START PRESTART'),
+      h('div',{style:{marginTop:8}},
+        h('button',{className:'abtn-ghost',onClick:function(){setShowPin(true);}},
+          'Supervisor / Mechanic \u2192')
+      )
     );
   }
+
   var syncCls=!isOnline?'sync-dot sync-off':pendingSync>0?'sync-dot sync-pend':'sync-dot sync-ok';
   return h('div',{className:'app'},
     h('div',{className:'nav'},
       h('div',{className:'nav-brand'},h('span',{className:'nav-badge'},'PRE'),h('span',{className:'nav-title'},'START')),
-      h('div',{className:'nav-tabs'},
+      user==='Supervisor'&&h('div',{className:'nav-tabs'},
         h('button',{className:view!=='dashboard'?'ntab on':'ntab',onClick:function(){setView('vehicles');setSelV(null);}},'Prestart'),
         h('button',{className:view==='dashboard'?'ntab on':'ntab',onClick:function(){setView('dashboard');}},'Dashboard')
       ),
-      h('span',{className:syncCls})
+      h('div',{style:{display:'flex',alignItems:'center',gap:10}},
+        h('span',{className:syncCls,title:!isOnline?'Offline':pendingSync>0?pendingSync+' pending':'Synced'}),
+        user!=='Supervisor'&&h('span',{style:{fontSize:11,color:'var(--tx3)'}},user),
+        user!=='Supervisor'&&h('button',{style:{fontSize:11,color:'var(--tx3)',background:'none',border:'none',cursor:'pointer',padding:0},onClick:function(){setUser('');setNameIn('');}},'\u00D7 exit')
+      )
     ),
     !isOnline&&h('div',{className:'offline-banner'},'OFFLINE \u2014 saved locally, syncs when reconnected'),
     view==='vehicles'&&h(VehicleSelect,{vehicles:vehicles,onSelect:function(v){setSelV(v);setView('prestart');}}),
     view==='prestart'&&selV&&h(PrestartForm,{vehicle:selV,user:user,onBack:function(){setView('vehicles');setSelV(null);}}),
     view==='dashboard'&&h(Dashboard,{vehicles:vehicles,setVehicles:setVehicles,refreshVehicles:refreshVehicles})
-  );
-}
-
-function Setup(props){
-  var u=useState(''),url=u[0],setUrl=u[1];
-  var k=useState(''),key=k[0],setKey=k[1];
-  var sv=useState(false),saving=sv[0],setSaving=sv[1];
-  var er=useState(''),err=er[0],setErr=er[1];
-  function go(){
-    if(!url.includes('supabase.co')||!key){setErr('Check URL and key');return;}
-    setSaving(true);setErr('');
-    var client=supabase.createClient(url.trim(),key.trim());
-    client.from('vehicles').select('id').limit(1).then(function(r){
-      if(r.error)throw r.error;
-      props.onSetup(url.trim(),key.trim());
-    }).catch(function(e){setErr('Connection failed: '+e.message);setSaving(false);});
-  }
-  return h('div',{className:'setup'},
-    h('div',{style:{textAlign:'center',paddingTop:20}},
-      h('div',{className:'auth-sup',style:{marginBottom:8}},'SETUP'),
-      h('div',{className:'auth-h',style:{marginBottom:4}},'Connect Supabase'),
-      h('div',{className:'auth-sub'},'One-time setup')
-    ),
-    h('div',{className:'setup-card'},
-      h('div',{className:'setup-title'},'How to set up'),
-      h('div',{className:'setup-sub'},'Go to supabase.com, create a new project, run schema.sql in the SQL Editor, then paste your credentials below.'),
-      h('div',{className:'step'},h('span',{className:'step-n'},'1'),h('span',null,'supabase.com \u2192 New Project')),
-      h('div',{className:'step'},h('span',{className:'step-n'},'2'),h('span',null,'SQL Editor \u2192 paste & run schema.sql')),
-      h('div',{className:'step'},h('span',{className:'step-n'},'3'),h('span',null,'Copy URL + anon key below'))
-    ),
-    h('div',{className:'setup-card'},
-      h('div',{className:'field'},
-        h('label',{className:'flabel'},'PROJECT URL'),
-        h('input',{className:'finput mono',placeholder:'https://xxxxxx.supabase.co',value:url,onChange:function(e){setUrl(e.target.value);}})
-      ),
-      h('div',{className:'field'},
-        h('label',{className:'flabel'},'ANON / PUBLIC KEY'),
-        h('input',{className:'finput mono',placeholder:'eyJhbGci...',value:key,onChange:function(e){setKey(e.target.value);}})
-      ),
-      err&&h('div',{style:{color:'var(--fail-tx)',fontSize:12,marginBottom:8}},err),
-      h('button',{className:'abtn',disabled:saving||!url||!key,onClick:go},saving?'Connecting...':'CONNECT')
-    )
   );
 }
 
