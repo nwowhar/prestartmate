@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#BA7517">
+<title>Fleet Prestart</title>
+<link rel="manifest" href="/manifest.json">
+<style>
+:root{
+  --bg:#fff;--bg2:#f6f5f1;--bg3:#eeedea;
+  --tx:#1c1c1a;--tx2:#6b6b68;--tx3:#9e9e9b;
+  --bd:rgba(0,0,0,0.09);--bd2:rgba(0,0,0,0.18);
+  --r:8px;--rl:12px;
+  --accent:#BA7517;--ok:#1D9E75;--fail:#C94520;
+  --ok-bg:#e6f5ee;--ok-tx:#0d5a33;--ok-bd:#9FE1CB;
+  --warn-bg:#fdf0d8;--warn-tx:#5a3800;--warn-bd:#FAC775;
+  --fail-bg:#faeaea;--fail-tx:#5a1010;--fail-bd:#F09595;
+}
+@media(prefers-color-scheme:dark){:root{
+  --bg:#1c1c1a;--bg2:#252522;--bg3:#2f2f2c;
+  --tx:#f0efe8;--tx2:#999992;--tx3:#666660;
+  --bd:rgba(255,255,255,0.09);--bd2:rgba(255,255,255,0.18);
+  --ok-bg:#0a2418;--ok-tx:#5DCAA5;--ok-bd:#085041;
+  --warn-bg:#2a1e05;--warn-tx:#FAC775;--warn-bd:#633806;
+  --fail-bg:#28100e;--fail-tx:#F09595;--fail-bd:#501313;
+}}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--bg3)}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:var(--tx);font-size:15px;line-height:1.5}
+input,textarea,select,button{font-family:inherit;font-size:14px;color:var(--tx)}
+.app{max-width:600px;margin:0 auto;padding-bottom:48px;min-height:100vh;background:var(--bg3)}
+/* Nav */
+.nav{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg);border-bottom:0.5px solid var(--bd);position:sticky;top:0;z-index:100;gap:10px}
+.nav-brand{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.nav-badge{background:var(--accent);color:#fff;font-size:9px;letter-spacing:.12em;padding:2px 7px;border-radius:4px;font-weight:600}
+.nav-title{font-weight:600;font-size:14px;letter-spacing:.04em}
+.nav-tabs{display:flex;gap:4px}
+.ntab{padding:6px 11px;border:0.5px solid var(--bd);border-radius:20px;background:transparent;color:var(--tx2);font-size:12px;letter-spacing:.04em;cursor:pointer}
+.ntab.on{background:var(--bg2);color:var(--tx);border-color:var(--bd2)}
+.sync-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.sync-ok{background:#1D9E75}.sync-pend{background:#CF8C00}.sync-off{background:#aaa}
+/* Auth */
+.auth{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:85vh;gap:18px;padding:40px 24px;text-align:center}
+.auth-sup{font-size:11px;letter-spacing:.14em;color:var(--tx3);font-weight:600}
+.auth-h{font-size:30px;font-weight:700;letter-spacing:.02em}
+.auth-sub{font-size:13px;color:var(--tx2)}
+.auth-input{width:100%;max-width:300px;padding:12px 16px;border:0.5px solid var(--bd2);border-radius:var(--r);background:var(--bg);color:var(--tx);font-size:15px;text-align:center;outline:none;transition:border-color .15s}
+.auth-input:focus{border-color:var(--accent)}
+.abtn{width:100%;max-width:300px;padding:13px;background:var(--accent);color:#fff;border:none;border-radius:var(--r);font-size:12px;letter-spacing:.1em;font-weight:700;cursor:pointer}
+.abtn:disabled{opacity:.35;cursor:default}
+.abtn-ghost{width:100%;max-width:300px;padding:12px;background:transparent;border:0.5px solid var(--bd2);border-radius:var(--r);color:var(--tx2);font-size:12px;letter-spacing:.06em;cursor:pointer}
+.abtn-ghost:hover{background:var(--bg2)}
+/* Setup */
+.setup{max-width:500px;margin:0 auto;padding:32px 24px;display:flex;flex-direction:column;gap:20px}
+.setup-card{background:var(--bg);border:0.5px solid var(--bd);border-radius:var(--rl);padding:20px}
+.setup-title{font-size:16px;font-weight:600;margin-bottom:4px}
+.setup-sub{font-size:12px;color:var(--tx2);margin-bottom:16px;line-height:1.6}
+.field{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
+.flabel{font-size:10px;letter-spacing:.1em;color:var(--tx3);font-weight:600}
+.finput{padding:9px 12px;border:0.5px solid var(--bd2);border-radius:var(--r);background:var(--bg2);color:var(--tx);outline:none;font-size:13px;width:100%}
+.finput:focus{border-color:var(--accent)}
+.finput.mono{font-family:monospace;font-size:12px}
+.step{display:flex;align-items:flex-start;gap:10px;font-size:13px;color:var(--tx2);line-height:1.6}
+.step-n{background:var(--accent);color:#fff;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;margin-top:2px}
+/* Page */
+.page{padding:16px}
+.slabel{font-size:10px;letter-spacing:.12em;color:var(--tx3);font-weight:600;margin-bottom:10px;display:block}
+/* Vehicle cards */
+.v-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.v-card{background:var(--bg);border:0.5px solid var(--bd);border-radius:var(--rl);padding:14px 14px 12px;cursor:pointer;transition:border-color .1s,transform .1s;active:scale(.98)}
+.v-card:hover{border-color:var(--bd2)}
+.v-id{font-size:22px;font-weight:700;letter-spacing:.04em;font-variant-numeric:tabular-nums}
+.v-model{font-size:11px;color:var(--tx2);margin-top:2px}
+.v-km{font-size:11px;color:var(--tx3);margin-top:8px;font-variant-numeric:tabular-nums}
+.badge{font-size:10px;display:inline-block;padding:2px 8px;border-radius:4px;margin-top:6px;font-weight:600;letter-spacing:.04em}
+.badge-ok{background:var(--ok-bg);color:var(--ok-tx)}
+.badge-warn{background:var(--warn-bg);color:var(--warn-tx)}
+.badge-fail{background:var(--fail-bg);color:var(--fail-tx)}
+/* Form */
+.card{background:var(--bg);border:0.5px solid var(--bd);border-radius:var(--rl);overflow:hidden}
+.card-p{padding:14px 16px}
+.form-hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px}
+.fh-id{font-size:24px;font-weight:700;letter-spacing:.04em}
+.fh-date{text-align:right;font-size:11px;color:var(--tx2)}
+.fh-date strong{display:block;font-size:13px;color:var(--tx);margin-top:2px}
+.issues-banner{background:var(--fail-bg);border:0.5px solid var(--fail-bd);border-radius:var(--r);padding:12px 14px;margin-bottom:10px}
+.ib-title{font-size:10px;letter-spacing:.1em;color:var(--fail-tx);font-weight:700;margin-bottom:8px}
+.ib-row{display:flex;flex-wrap:wrap;gap:5px;align-items:center;padding:6px 0;border-top:0.5px solid var(--fail-bd)}
+.ib-cat{font-size:9px;background:var(--fail-bd);color:var(--fail-tx);padding:2px 6px;border-radius:3px;font-weight:700;letter-spacing:.06em}
+.ib-lbl{font-size:13px;color:var(--fail-tx);flex:1}
+.ib-since{font-size:10px;color:var(--fail-tx);opacity:.7}
+.ib-note{width:100%;font-size:12px;color:var(--fail-tx);opacity:.8;padding-top:2px}
+.odo-box{background:var(--bg);border:0.5px solid var(--bd);border-radius:var(--r);padding:12px 14px;margin-bottom:10px}
+.odo-lbl{font-size:10px;letter-spacing:.1em;color:var(--tx3);font-weight:600;margin-bottom:5px}
+.odo-in{width:100%;padding:8px 0;border:none;border-bottom:1.5px solid var(--bd2);background:transparent;font-size:24px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--tx);outline:none}
+.odo-in:focus{border-bottom-color:var(--accent)}
+.prog{margin-bottom:10px}
+.prog-bar{height:4px;background:var(--bd);border-radius:2px;overflow:hidden}
+.prog-fill{height:100%;background:var(--accent);border-radius:2px;transition:width .3s}
+.prog-txt{font-size:10px;color:var(--tx3);text-align:right;margin-top:3px}
+.cat-tabs{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px}
+.ctab{padding:6px 11px;border:0.5px solid var(--bd);border-radius:20px;background:transparent;color:var(--tx2);font-size:11px;letter-spacing:.04em;cursor:pointer}
+.ctab.on{background:var(--bg2);color:var(--tx);border-color:var(--bd2)}
+.ctab.fail{border-color:var(--fail-bd);color:var(--fail-tx)}
+.ctab.done{border-color:var(--ok-bd);color:var(--ok-tx)}
+.checklist{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.ci{background:var(--bg);border:0.5px solid var(--bd);border-radius:var(--r);padding:10px 12px;transition:border-color .1s,background .1s}
+.ci.pass{border-color:var(--ok-bd);background:var(--ok-bg)}
+.ci.fail{border-color:var(--fail-bd);background:var(--fail-bg)}
+.ci-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.ci-lbl{font-size:14px;flex:1}
+.ci.pass .ci-lbl{color:var(--ok-tx)}
+.ci.fail .ci-lbl{color:var(--fail-tx)}
+.ci-btns{display:flex;gap:5px;flex-shrink:0}
+.ck{width:46px;height:46px;border-radius:var(--r);border:0.5px solid var(--bd2);background:var(--bg2);color:var(--tx2);font-size:20px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.ck.p{background:#1D9E75;border-color:#1D9E75;color:#fff}
+.ck.f{background:#C94520;border-color:#C94520;color:#fff}
+.ci-comment{width:100%;margin-top:8px;padding:7px 10px;border:0.5px solid var(--bd2);border-radius:var(--r);background:var(--bg2);color:var(--tx);font-size:13px;outline:none;resize:vertical;min-height:50px}
+.ci-comment:focus{border-color:var(--accent)}
+.sbmt{width:100%;padding:15px;background:var(--accent);color:#fff;border:none;border-radius:var(--r);font-size:12px;letter-spacing:.1em;font-weight:700;cursor:pointer}
+.sbmt:disabled{opacity:.35;cursor:default}
+/* Back */
+.back{background:transparent;border:none;color:var(--tx3);font-size:12px;letter-spacing:.06em;padding:0;margin-bottom:12px;cursor:pointer;display:flex;align-items:center;gap:5px}
+.back:hover{color:var(--tx2)}
+/* Success */
+.sbox{display:flex;flex-direction:column;align-items:center;padding:60px 20px;gap:14px;text-align:center}
+.s-icon{width:56px;height:56px;background:var(--ok-bg);border-radius:50%;display:flex;align-items:center;justify-content:center}
+.s-title{font-size:20px;font-weight:700;color:var(--ok-tx)}
+.s-sub{font-size:13px;color:var(--tx2)}
+/* Dashboard */
+.alert-strip{background:var(--warn-bg);border:0.5px solid var(--warn-bd);border-radius:var(--r);padding:10px 14px;margin-bottom:12px;font-size:12px;color:var(--warn-tx);display:flex;align-items:center;gap:8px}
+.dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
+.dc{background:var(--bg);border:0.5px solid var(--bd);border-radius:var(--rl);padding:14px;cursor:pointer;transition:border-color .1s}
+.dc:hover{border-color:var(--bd2)}
+.dc-id{font-size:20px;font-weight:700;letter-spacing:.04em;margin-bottom:1px}
+.dc-model{font-size:10px;color:var(--tx3);margin-bottom:10px}
+.dc-stats{display:flex;gap:10px;flex-wrap:wrap}
+.ds-lbl{font-size:9px;letter-spacing:.08em;color:var(--tx3);font-weight:600}
+.ds-val{font-size:16px;font-weight:700;font-variant-numeric:tabular-nums}
+.ds-issues{color:var(--fail-tx)}
+/* Detail */
+.dh{background:var(--bg);border:0.5px solid var(--bd);border-radius:var(--rl);padding:14px 16px;margin-bottom:10px}
+.dh-id{font-size:26px;font-weight:700;letter-spacing:.04em}
+.dh-model{font-size:12px;color:var(--tx2);margin-bottom:10px}
+.dh-meta{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--tx2)}
+.dh-meta strong{color:var(--tx);font-weight:600}
+.tabs{display:flex;gap:5px;margin-bottom:12px}
+.tbtn{padding:7px 13px;border:0.5px solid var(--bd);border-radius:20px;background:transparent;color:var(--tx2);font-size:12px;letter-spacing:.04em;cursor:pointer;position:relative}
+.tbtn.on{background:var(--bg2);color:var(--tx);border-color:var(--bd2)}
+.tb-badge{position:absolute;top:-5px;right:-5px;background:#C94520;color:#fff;border-radius:10px;font-size:9px;padding:1px 4px;font-weight:700;min-width:16px;text-align:center}
+.chart-wrap{background:var(--bg);border:0.5px solid var(--bd);border-radius:var(--rl);padding:14px;margin-bottom:10px}
+.chart-title{font-size:10px;letter-spacing:.1em;color:var(--tx3);font-weight:600;margin-bottom:12px}
+.info-card{background:var(--bg);border:0.5px solid var(--bd);border-radius:var(--rl);overflow:hidden;margin-bottom:10px}
+.ir{display:flex;justify-content:space-between;padding:9px 14px;border-bottom:0.5px solid var(--bd);font-size:13px}
+.ir:last-child{border-bottom:none}
+.ik{color:var(--tx2)}
+.iv{font-weight:600;font-variant-numeric:tabular-nums}
+.issue-card{background:var(--bg);border:0.5px solid var(--fail-bd);border-radius:var(--r);padding:12px 14px;margin-bottom:8px}
+.ic-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px}
+.ic-lbl{font-size:14px;font-weight:600;margin-top:4px}
+.ic-desc{font-size:13px;color:var(--tx2);margin-bottom:4px}
+.ic-meta{font-size:11px;color:var(--tx3)}
+.resolve-btn{background:var(--ok-bg);color:var(--ok-tx);border:0.5px solid var(--ok-bd);border-radius:6px;padding:6px 10px;font-size:10px;letter-spacing:.06em;font-weight:700;white-space:nowrap;cursor:pointer;flex-shrink:0}
+.resolved{opacity:.4;border-color:var(--bd)}
+.resolved-tick{font-size:10px;color:var(--ok-tx);letter-spacing:.04em;font-weight:600}
+.add-btn{width:100%;padding:11px;background:transparent;border:0.5px solid var(--bd2);border-radius:var(--r);color:var(--accent);font-size:11px;letter-spacing:.1em;font-weight:700;cursor:pointer;margin-bottom:10px}
+.svc-form{background:var(--bg);border:0.5px solid var(--bd);border-radius:var(--rl);padding:14px;margin-bottom:10px}
+.svc-save{width:100%;padding:11px;background:var(--accent);color:#fff;border:none;border-radius:var(--r);font-size:11px;letter-spacing:.1em;font-weight:700;cursor:pointer;margin-top:4px}
+.svc-card{background:var(--bg);border:0.5px solid var(--bd);border-radius:var(--rl);padding:14px;margin-bottom:8px}
+.svc-hdr{display:flex;justify-content:space-between;margin-bottom:5px}
+.svc-date{font-size:14px;font-weight:600}
+.svc-km{font-size:14px;color:var(--accent);font-weight:700;font-variant-numeric:tabular-nums}
+.svc-tech{font-size:11px;color:var(--tx3);margin-bottom:8px}
+.svc-sect{border-left:2px solid var(--ok-bd);padding-left:10px;margin-top:8px}
+.svc-sect.pend{border-color:var(--warn-bd)}
+.svc-sect-lbl{font-size:9px;letter-spacing:.1em;color:var(--ok-tx);font-weight:700;margin-bottom:2px}
+.svc-sect.pend .svc-sect-lbl{color:var(--warn-tx)}
+.svc-sect-txt{font-size:13px;color:var(--tx2)}
+.empty{text-align:center;padding:40px 20px;font-size:13px;color:var(--tx3)}
+.add-v-form{background:var(--bg);border:0.5px solid var(--bd);border-radius:var(--rl);padding:14px;margin-bottom:14px}
+.color-row{display:flex;gap:8px;flex-wrap:wrap}
+.color-swatch{width:30px;height:30px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:border-color .1s}
+.color-swatch.sel{border-color:var(--tx)}
+.offline-banner{background:var(--warn-bg);border:0.5px solid var(--warn-bd);border-radius:var(--r);padding:9px 14px;margin-bottom:10px;font-size:12px;color:var(--warn-tx);text-align:center;letter-spacing:.04em}
+</style>
+</head>
+<body>
+<div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;color:var(--tx3);font-size:13px">Loading...</div></div>
+
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/recharts@2.5.0/umd/Recharts.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  IndexedDB LAYER
+// ═══════════════════════════════════════════════════════
+const IDB = (() => {
+  let _db = null;
+  async function open() {
+    if (_db) return _db;
+    return new Promise((res, rej) => {
+      const req = indexedDB.open('prestart_v2', 1);
+      req.onupgradeneeded = e => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains('kv')) db.createObjectStore('kv');
+        if (!db.objectStoreNames.contains('queue')) db.createObjectStore('queue', {keyPath:'qid', autoIncrement:true});
+      };
+      req.onsuccess = e => { _db = e.target.result; res(_db); };
+      req.onerror = () => rej(req.error);
+    });
+  }
+  async function get(key) {
+    const db = await open();
+    return new Promise((res, rej) => {
+      const r = db.transaction('kv','readonly').objectStore('kv').get(key);
+      r.onsuccess = () => res(r.result ?? null);
+      r.onerror = () => rej(r.error);
+    });
+  }
+  async function set(key, val) {
+    const db = await open();
+    return new Promise((res, rej) => {
+      const r = db.transaction('kv','readwrite').objectStore('kv').put(val, key);
+      r.onsuccess = () => res();
+      r.onerror = () => rej(r.error);
+    });
+  }
+  async function queueAll() {
+    const db = await open();
+    return new Promise((res, rej) => {
+      const r = db.transaction('queue','readonly').objectStore('queue').getAll();
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => rej(r.error);
+    });
+  }
+  async function queueAdd(item) {
+    const db = await open();
+    return new Promise((res, rej) => {
+      const r = db.transaction('queue','readwrite').objectStore('queue').add({...item, ts: Date.now()});
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => rej(r.error);
+    });
+  }
+  async function queueDelete(qid) {
+    const db = await open();
+    return new Promise((res, rej) => {
+      const r = db.transaction('queue','readwrite').objectStore('queue').delete(qid);
+      r.onsuccess = () => res();
+      r.onerror = () => rej(r.error);
+    });
+  }
+  async function queueCount() {
+    const q = await queueAll();
+    return q.length;
+  }
+  return { get, set, queueAll, queueAdd, queueDelete, queueCount };
+})();
+
+// ═══════════════════════════════════════════════════════
+//  SYNC MANAGER
+// ═══════════════════════════════════════════════════════
+let _sb = null;
+let _onSyncUpdate = null;
+
+const Sync = {
+  processing: false,
+
+  init(url, key, onUpdate) {
+    _sb = supabase.createClient(url, key);
+    _onSyncUpdate = onUpdate;
+  },
+
+  async process() {
+    if (this.processing || !navigator.onLine || !_sb) return;
+    this.processing = true;
+    try {
+      const queue = await IDB.queueAll();
+      for (const item of queue) {
+        try {
+          await this._execute(item);
+          await IDB.queueDelete(item.qid);
+        } catch (e) {
+          console.warn('Sync item failed', item.table, e.message);
+        }
+      }
+    } finally {
+      this.processing = false;
+      if (_onSyncUpdate) {
+        const n = await IDB.queueCount();
+        _onSyncUpdate(n);
+      }
+    }
+  },
+
+  async _execute(item) {
+    const data = await IDB.get(item.idbKey);
+    if (!data) return;
+    const { error } = await _sb.from(item.table).upsert(
+      Array.isArray(data) ? data : [data],
+      { onConflict: item.conflict || 'id' }
+    );
+    if (error) throw error;
+  },
+
+  async queue(table, idbKey, conflict) {
+    await IDB.queueAdd({ table, idbKey, conflict });
+    if (navigator.onLine) this.process();
+  }
+};
+
+window.addEventListener('online', () => Sync.process());
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') Sync.process();
+});
+
+// ═══════════════════════════════════════════════════════
+//  DATA API
+// ═══════════════════════════════════════════════════════
+const DB = {
+  async getVehicles() {
+    return (await IDB.get('vehicles')) || [];
+  },
+  async saveVehicles(vehicles) {
+    await IDB.set('vehicles', vehicles);
+    await Sync.queue('vehicles', 'vehicles', 'id');
+  },
+  async getPrestart(vehicleId, date) {
+    return await IDB.get(`ps_${vehicleId}_${date}`);
+  },
+  async savePrestart(ps) {
+    await IDB.set(`ps_${ps.vehicle_id}_${ps.date}`, ps);
+    await Sync.queue('prestarts', `ps_${ps.vehicle_id}_${ps.date}`, 'vehicle_id,date');
+  },
+  async getIssues(vehicleId) {
+    return (await IDB.get(`issues_${vehicleId}`)) || [];
+  },
+  async saveIssues(vehicleId, issues) {
+    await IDB.set(`issues_${vehicleId}`, issues);
+    await Sync.queue('issues', `issues_${vehicleId}`, 'id');
+  },
+  async resolveIssue(vehicleId, issueId) {
+    const issues = await this.getIssues(vehicleId);
+    const d = today();
+    const updated = issues.map(i => i.id === issueId ? {...i, resolved: true, resolved_date: d} : i);
+    await IDB.set(`issues_${vehicleId}`, updated);
+    await Sync.queue('issues', `issues_${vehicleId}`, 'id');
+    return updated;
+  },
+  async getKmHistory(vehicleId) {
+    return (await IDB.get(`km_${vehicleId}`)) || [];
+  },
+  async addKmEntry(vehicleId, date, odometer) {
+    const h = await this.getKmHistory(vehicleId);
+    const id = `${vehicleId}_${date}`;
+    const idx = h.findIndex(x => x.date === date);
+    const entry = { id, vehicle_id: vehicleId, date, odometer };
+    if (idx >= 0) h[idx] = entry; else h.push(entry);
+    await IDB.set(`km_${vehicleId}`, h);
+    await Sync.queue('km_history', `km_${vehicleId}`, 'vehicle_id,date');
+  },
+  async getServiceRecords(vehicleId) {
+    return (await IDB.get(`svcs_${vehicleId}`)) || [];
+  },
+  async addServiceRecord(vehicleId, record) {
+    const recs = await this.getServiceRecords(vehicleId);
+    recs.push(record);
+    await IDB.set(`svcs_${vehicleId}`, recs);
+    await Sync.queue('service_records', `svcs_${vehicleId}`, 'id');
+  },
+  async updateVehicleService(vehicleId, km, date) {
+    const vehicles = await this.getVehicles();
+    const updated = vehicles.map(v => v.id === vehicleId ? {...v, last_service_km: km, last_service_date: date} : v);
+    await IDB.set('vehicles', updated);
+    await Sync.queue('vehicles', 'vehicles', 'id');
+    return updated;
+  },
+  async pullAll() {
+    if (!_sb || !navigator.onLine) return;
+    try {
+      const { data: vs } = await _sb.from('vehicles').select('*').order('id');
+      if (vs && vs.length > 0) await IDB.set('vehicles', vs);
+
+      const vids = (vs || []).map(v => v.id);
+      for (const vid of vids) {
+        const { data: iss } = await _sb.from('issues').select('*').eq('vehicle_id', vid);
+        if (iss) await IDB.set(`issues_${vid}`, iss);
+        const { data: km } = await _sb.from('km_history').select('*').eq('vehicle_id', vid).order('date');
+        if (km) await IDB.set(`km_${vid}`, km);
+        const { data: sv } = await _sb.from('service_records').select('*').eq('vehicle_id', vid).order('date');
+        if (sv) await IDB.set(`svcs_${vid}`, sv);
+      }
+    } catch(e) { console.warn('Pull failed', e.message); }
+  }
+};
+
+// ═══════════════════════════════════════════════════════
+//  CONSTANTS
+// ═══════════════════════════════════════════════════════
+const today = () => new Date().toISOString().split('T')[0];
+const fmtDate = d => { try { return new Date(d+'T12:00:00').toLocaleDateString('en-AU',{day:'2-digit',month:'short',year:'numeric'}) } catch { return d }};
+const fmtKm = n => Number(n).toLocaleString('en-AU');
+const uid = () => crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2)+Date.now().toString(36);
+
+const CHECKLIST = [
+  {id:'oil',label:'Engine oil level',cat:'Fluids'},
+  {id:'coolant',label:'Coolant level',cat:'Fluids'},
+  {id:'brake_fluid',label:'Brake fluid',cat:'Fluids'},
+  {id:'washer',label:'Washer fluid',cat:'Fluids'},
+  {id:'fuel',label:'Fuel level adequate',cat:'Fluids'},
+  {id:'tyre_fl',label:'Front left tyre',cat:'Tyres'},
+  {id:'tyre_fr',label:'Front right tyre',cat:'Tyres'},
+  {id:'tyre_rl',label:'Rear left tyre',cat:'Tyres'},
+  {id:'tyre_rr',label:'Rear right tyre',cat:'Tyres'},
+  {id:'tyre_spare',label:'Spare tyre',cat:'Tyres'},
+  {id:'lights_head',label:'Headlights',cat:'Lights'},
+  {id:'lights_brake',label:'Brake lights',cat:'Lights'},
+  {id:'lights_ind',label:'Indicators',cat:'Lights'},
+  {id:'lights_rev',label:'Reverse lights',cat:'Lights'},
+  {id:'seatbelts',label:'Seatbelts (all)',cat:'Safety'},
+  {id:'first_aid',label:'First aid kit',cat:'Safety'},
+  {id:'fire_ext',label:'Fire extinguisher charged',cat:'Safety'},
+  {id:'uhf',label:'UHF radio working',cat:'Safety'},
+  {id:'windscreen',label:'Windscreen (no chips)',cat:'Condition'},
+  {id:'body_damage',label:'No new body damage',cat:'Condition'},
+  {id:'horn',label:'Horn operational',cat:'Condition'},
+  {id:'rev_cam',label:'Reversing camera/sensors',cat:'Condition'},
+];
+const CATS = ['Fluids','Tyres','Lights','Safety','Condition'];
+const COLORS = ['#BA7517','#0F6E56','#185FA5','#993C1D','#533CC7','#1D6A8E','#7A3B69','#3B5A1F'];
+
+// ═══════════════════════════════════════════════════════
+//  REACT APP
+// ═══════════════════════════════════════════════════════
+const {useState, useEffect, useCallback} = React;
+const {LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine} = Recharts;
+
+function App() {
+  const [step, setStep] = useState('loading'); // loading|setup|auth|app
+  const [user, setUser] = useState('');
+  const [nameIn, setNameIn] = useState('');
+  const [view, setView] = useState('vehicles');
+  const [selV, setSelV] = useState(null);
+  const [vehicles, setVehicles] = useState([]);
+  const [pendingSync, setPendingSync] = useState(0);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [isSup, setIsSup] = useState(false);
+
+  useEffect(() => {
+    init();
+    window.addEventListener('online', () => setIsOnline(true));
+    window.addEventListener('offline', () => setIsOnline(false));
+  }, []);
+
+  async function init() {
+    const cfg = getConfig();
+    if (!cfg) { setStep('setup'); return; }
+    Sync.init(cfg.url, cfg.key, setPendingSync);
+    const n = await IDB.queueCount();
+    setPendingSync(n);
+    await DB.pullAll();
+    const v = await DB.getVehicles();
+    setVehicles(v);
+    setStep('auth');
+    Sync.process();
+  }
+
+  function getConfig() {
+    try {
+      const c = localStorage.getItem('sb_cfg');
+      return c ? JSON.parse(c) : null;
+    } catch { return null; }
+  }
+
+  async function handleSetup(url, key) {
+    localStorage.setItem('sb_cfg', JSON.stringify({url, key}));
+    Sync.init(url, key, setPendingSync);
+    await DB.pullAll();
+    const v = await DB.getVehicles();
+    setVehicles(v);
+    setStep('auth');
+  }
+
+  function refreshVehicles() {
+    DB.getVehicles().then(setVehicles);
+  }
+
+  if (step === 'loading') return null;
+  if (step === 'setup') return React.createElement(Setup, {onSetup: handleSetup});
+
+  if (!user) return React.createElement('div', {className:'auth'},
+    React.createElement('div', {className:'auth-sup'}, 'EXPLORATION FLEET MANAGEMENT'),
+    React.createElement('div', {className:'auth-h'}, 'Prestart System'),
+    React.createElement('div', {className:'auth-sub'}, 'Enter your name to continue'),
+    React.createElement('input', {className:'auth-input', placeholder:'Your name...', value:nameIn, onChange:e=>setNameIn(e.target.value), onKeyDown:e=>e.key==='Enter'&&nameIn.trim()&&setUser(nameIn.trim())}),
+    React.createElement('button', {className:'abtn', disabled:!nameIn.trim(), onClick:()=>{setUser(nameIn.trim());setIsSup(false)}}, 'CONTINUE AS WORKER'),
+    React.createElement('button', {className:'abtn-ghost', onClick:()=>{setUser('Supervisor');setIsSup(true);setView('dashboard')}}, 'SUPERVISOR / MECHANIC DASHBOARD')
+  );
+
+  const syncCls = !isOnline ? 'sync-dot sync-off' : pendingSync > 0 ? 'sync-dot sync-pend' : 'sync-dot sync-ok';
+  const syncTitle = !isOnline ? 'Offline — changes saved locally' : pendingSync > 0 ? `${pendingSync} items pending sync` : 'All synced';
+
+  return React.createElement('div', {className:'app'},
+    React.createElement('div', {className:'nav'},
+      React.createElement('div', {className:'nav-brand'},
+        React.createElement('span', {className:'nav-badge'}, 'PRE'),
+        React.createElement('span', {className:'nav-title'}, 'START')
+      ),
+      React.createElement('div', {className:'nav-tabs'},
+        React.createElement('button', {className:'ntab'+(view!=='dashboard'?' on':''), onClick:()=>{setView('vehicles');setSelV(null)}}, 'Prestart'),
+        React.createElement('button', {className:'ntab'+(view==='dashboard'?' on':''), onClick:()=>setView('dashboard')}, 'Dashboard')
+      ),
+      React.createElement('span', {className:syncCls, title:syncTitle})
+    ),
+    !isOnline && React.createElement('div', {className:'offline-banner'}, 'OFFLINE — data saved locally, will sync when reconnected'),
+    view==='vehicles' && React.createElement(VehicleSelect, {vehicles, onSelect:v=>{setSelV(v);setView('prestart')}}),
+    view==='prestart' && selV && React.createElement(PrestartForm, {vehicle:selV, user, onBack:()=>{setView('vehicles');setSelV(null)}}),
+    view==='dashboard' && React.createElement(Dashboard, {vehicles, setVehicles, refreshVehicles})
+  );
+}
+
+// ─── SETUP SCREEN ──────────────────────────────────────
+function Setup({onSetup}) {
+  const [url, setUrl] = useState('');
+  const [key, setKey] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState('');
+
+  async function handleGo() {
+    if (!url.includes('supabase.co') || !key) { setErr('Check URL and key'); return; }
+    setSaving(true); setErr('');
+    try {
+      const client = supabase.createClient(url.trim(), key.trim());
+      const { error } = await client.from('vehicles').select('id').limit(1);
+      if (error) throw error;
+      onSetup(url.trim(), key.trim());
+    } catch(e) {
+      setErr('Connection failed: '+e.message);
+    } finally { setSaving(false); }
+  }
+
+  return React.createElement('div', {className:'setup'},
+    React.createElement('div', {style:{textAlign:'center',paddingTop:20}},
+      React.createElement('div', {className:'auth-sup', style:{marginBottom:8}}, 'SETUP'),
+      React.createElement('div', {className:'auth-h', style:{marginBottom:4}}, 'Connect Supabase'),
+      React.createElement('div', {className:'auth-sub'}, 'One-time setup — enter your project credentials')
+    ),
+    React.createElement('div', {className:'setup-card'},
+      React.createElement('div', {className:'setup-title'}, 'Step 1: Create your Supabase project'),
+      React.createElement('div', {className:'setup-sub'}, 'Go to supabase.com → New Project. Then open the SQL Editor and paste the contents of schema.sql to set up your tables.'),
+      React.createElement('div', {className:'step'}, React.createElement('span', {className:'step-n'}, '1'), React.createElement('span', null, 'supabase.com → New Project → copy your URL and anon key')),
+      React.createElement('div', {className:'step'}, React.createElement('span', {className:'step-n'}, '2'), React.createElement('span', null, 'SQL Editor → paste schema.sql → Run')),
+      React.createElement('div', {className:'step'}, React.createElement('span', {className:'step-n'}, '3'), React.createElement('span', null, 'Paste your credentials below and connect'))
+    ),
+    React.createElement('div', {className:'setup-card'},
+      React.createElement('div', {className:'setup-title'}, 'Step 2: Enter credentials'),
+      React.createElement('div', {className:'field'},
+        React.createElement('label', {className:'flabel'}, 'PROJECT URL'),
+        React.createElement('input', {className:'finput mono', placeholder:'https://xxxxxx.supabase.co', value:url, onChange:e=>setUrl(e.target.value)})
+      ),
+      React.createElement('div', {className:'field'},
+        React.createElement('label', {className:'flabel'}, 'ANON / PUBLIC KEY'),
+        React.createElement('input', {className:'finput mono', placeholder:'eyJhbGciOiJIUzI1NiIsInR5c...', value:key, onChange:e=>setKey(e.target.value)})
+      ),
+      err && React.createElement('div', {style:{color:'var(--fail-tx)',fontSize:12,marginBottom:8}}, err),
+      React.createElement('button', {className:'abtn', disabled:saving||!url||!key, onClick:handleGo}, saving ? 'Connecting...' : 'CONNECT')
+    )
+  );
+}
+
+// ─── VEHICLE SELECT ─────────────────────────────────────
+function VehicleSelect({vehicles, onSelect}) {
+  const [vdata, setVdata] = useState({});
+
+  useEffect(() => {
+    vehicles.forEach(async v => {
+      const km = await DB.getKmHistory(v.id);
+      const last = km.length > 0 ? km[km.length-1].odometer : v.last_service_km;
+      const since = last - v.last_service_km;
+      const to = v.service_interval_km - since;
+      setVdata(p => ({...p, [v.id]:{last, to}}));
+    });
+  }, [vehicles]);
+
+  if (vehicles.length === 0) return React.createElement('div', {className:'empty', style:{paddingTop:60}},
+    'No vehicles found.',
+    React.createElement('br'),
+    React.createElement('span', {style:{fontSize:11,marginTop:4,display:'block'}}, 'Ask your supervisor to add vehicles in the Dashboard.')
+  );
+
+  return React.createElement('div', {className:'page'},
+    React.createElement('span', {className:'slabel'}, 'SELECT VEHICLE'),
+    React.createElement('div', {className:'v-grid'},
+      vehicles.map(v => {
+        const d = vdata[v.id] || {};
+        const cls = d.to <= 0 ? 'badge badge-fail' : d.to <= 500 ? 'badge badge-warn' : 'badge badge-ok';
+        const txt = d.to === undefined ? '' : d.to <= 0 ? 'SVC OVERDUE' : d.to <= 500 ? `${fmtKm(d.to)}km to svc` : `${fmtKm(d.to)}km to svc`;
+        return React.createElement('div', {key:v.id, className:'v-card', style:{borderLeft:'3px solid '+v.color}, onClick:()=>onSelect(v)},
+          React.createElement('div', {className:'v-id', style:{color:v.color}}, v.id),
+          React.createElement('div', {className:'v-model'}, v.year+' '+v.make+' '+v.model),
+          d.last && React.createElement('div', {className:'v-km'}, fmtKm(d.last)+' km'),
+          txt && React.createElement('div', {className:cls}, txt)
+        );
+      })
+    )
+  );
+}
+
+// ─── PRESTART FORM ──────────────────────────────────────
+function PrestartForm({vehicle, user, onBack}) {
+  const [checks, setChecks] = useState({});
+  const [comments, setComments] = useState({});
+  const [odometer, setOdometer] = useState('');
+  const [issues, setIssues] = useState([]);
+  const [cat, setCat] = useState('Fluids');
+  const [status, setStatus] = useState('loading');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => { load() }, [vehicle.id]);
+
+  async function load() {
+    const ex = await DB.getPrestart(vehicle.id, today());
+    if (ex) { setStatus('done'); return; }
+    const all = await DB.getIssues(vehicle.id);
+    setIssues(all.filter(i => !i.resolved));
+    setStatus('form');
+  }
+
+  const catItems = c => CHECKLIST.filter(i => i.cat === c);
+  const done = CHECKLIST.filter(i => checks[i.id]).length;
+  const catDone = c => catItems(c).filter(i => checks[i.id]).length;
+  const catFail = c => catItems(c).some(i => checks[i.id] === 'fail');
+
+  async function submit() {
+    const missing = CHECKLIST.filter(i => !checks[i.id]);
+    if (missing.length > 0) { alert(`Complete all ${missing.length} remaining item(s) first.`); return; }
+    if (!odometer || isNaN(odometer)) { alert('Enter today\'s odometer reading.'); return; }
+    setSaving(true);
+    const ps = { id: `${vehicle.id}_${today()}`, vehicle_id: vehicle.id, date: today(), submitted_by: user, odometer: parseInt(odometer), checks, comments, created_at: new Date().toISOString() };
+    await DB.savePrestart(ps);
+    await DB.addKmEntry(vehicle.id, today(), parseInt(odometer));
+    const fails = CHECKLIST.filter(i => checks[i.id] === 'fail');
+    if (fails.length > 0) {
+      const all = await DB.getIssues(vehicle.id);
+      for (const f of fails) {
+        if (!all.find(x => !x.resolved && x.check_id === f.id)) {
+          all.push({ id: uid(), vehicle_id: vehicle.id, check_id: f.id, label: f.label, category: f.cat, description: comments[f.id] || 'Failed prestart — '+today(), date: today(), reported_by: user, resolved: false, created_at: new Date().toISOString() });
+        }
+      }
+      await DB.saveIssues(vehicle.id, all);
+    }
+    setSaving(false);
+    setStatus('submitted');
+  }
+
+  if (status === 'loading') return null;
+
+  if (status === 'done' || status === 'submitted') return React.createElement('div', {className:'page'},
+    React.createElement('button', {className:'back', onClick:onBack}, '← Back'),
+    React.createElement('div', {className:'sbox'},
+      React.createElement('div', {className:'s-icon'},
+        React.createElement('svg', {width:24,height:24,viewBox:'0 0 24 24',fill:'none'},
+          React.createElement('path', {d:'M5 13l4 4L19 7',stroke:'var(--ok-tx)',strokeWidth:2.5,strokeLinecap:'round',strokeLinejoin:'round'}))
+      ),
+      React.createElement('div', {className:'s-title'}, status==='submitted' ? 'Prestart submitted' : 'Already submitted today'),
+      React.createElement('div', {className:'s-sub'}, vehicle.id+' — '+fmtDate(today()))
+    )
+  );
+
+  const curItems = catItems(cat);
+
+  return React.createElement('div', {className:'page'},
+    React.createElement('button', {className:'back', onClick:onBack}, '← Back'),
+    React.createElement('div', {className:'card', style:{borderLeft:'3px solid '+vehicle.color,marginBottom:10}},
+      React.createElement('div', {className:'card-p'},
+        React.createElement('div', {className:'form-hdr'},
+          React.createElement('div', null,
+            React.createElement('div', {className:'fh-id', style:{color:vehicle.color}}, vehicle.id),
+            React.createElement('div', {style:{fontSize:12,color:'var(--tx2)'}}, vehicle.year+' '+vehicle.make+' '+vehicle.model)
+          ),
+          React.createElement('div', {className:'fh-date'}, 'Date', React.createElement('strong', null, fmtDate(today())))
+        )
+      )
+    ),
+    issues.length > 0 && React.createElement('div', {className:'issues-banner'},
+      React.createElement('div', {className:'ib-title'}, `OUTSTANDING ISSUES (${issues.length})`),
+      issues.map(iss => React.createElement('div', {key:iss.id, className:'ib-row'},
+        React.createElement('span', {className:'ib-cat'}, iss.category),
+        React.createElement('span', {className:'ib-lbl'}, iss.label),
+        React.createElement('span', {className:'ib-since'}, 'Since '+fmtDate(iss.date)),
+        iss.description && React.createElement('div', {className:'ib-note'}, iss.description)
+      ))
+    ),
+    React.createElement('div', {className:'odo-box'},
+      React.createElement('div', {className:'odo-lbl'}, "TODAY'S ODOMETER (km)"),
+      React.createElement('input', {className:'odo-in', type:'number', inputMode:'numeric', placeholder:'e.g. 45890', value:odometer, onChange:e=>setOdometer(e.target.value)})
+    ),
+    React.createElement('div', {className:'prog'},
+      React.createElement('div', {className:'prog-bar'}, React.createElement('div', {className:'prog-fill', style:{width:(done/CHECKLIST.length*100)+'%'}})),
+      React.createElement('div', {className:'prog-txt'}, done+'/'+CHECKLIST.length+' complete')
+    ),
+    React.createElement('div', {className:'cat-tabs'},
+      CATS.map(c => {
+        const d = catDone(c), t = catItems(c).length, f = catFail(c);
+        const cls = 'ctab'+(c===cat?' on':'')+(f?' fail':'')+(d===t&&!f?' done':'');
+        return React.createElement('button', {key:c, className:cls, onClick:()=>setCat(c)}, c, ' ', React.createElement('span', {style:{opacity:.6}}, d+'/'+t));
+      })
+    ),
+    React.createElement('div', {className:'checklist'},
+      curItems.map(item => React.createElement(CheckItem, {key:item.id, item, val:checks[item.id], comment:comments[item.id]||'',
+        onChange:v=>setChecks(p=>({...p,[item.id]:v})),
+        onComment:v=>setComments(p=>({...p,[item.id]:v}))
+      }))
+    ),
+    React.createElement('button', {className:'sbmt', disabled:saving||done<CHECKLIST.length, onClick:submit},
+      saving ? 'Saving...' : done < CHECKLIST.length ? `Complete ${CHECKLIST.length-done} remaining items` : 'SUBMIT PRESTART'
+    )
+  );
+}
+
+function CheckItem({item, val, comment, onChange, onComment}) {
+  return React.createElement('div', {className:'ci'+(val==='pass'?' pass':val==='fail'?' fail':'')},
+    React.createElement('div', {className:'ci-top'},
+      React.createElement('span', {className:'ci-lbl'}, item.label),
+      React.createElement('div', {className:'ci-btns'},
+        React.createElement('button', {className:'ck'+(val==='pass'?' p':''), onClick:()=>onChange(val==='pass'?null:'pass')}, '✓'),
+        React.createElement('button', {className:'ck'+(val==='fail'?' f':''), onClick:()=>onChange(val==='fail'?null:'fail')}, '✗')
+      )
+    ),
+    (val==='fail'||comment) && React.createElement('textarea', {className:'ci-comment', rows:2, placeholder:'Describe the issue...', value:comment, onChange:e=>onComment(e.target.value)})
+  );
+}
+
+// ─── DASHBOARD ──────────────────────────────────────────
+function Dashboard({vehicles, setVehicles, refreshVehicles}) {
+  const [fleet, setFleet] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [detail, setDetail] = useState(null);
+  const [showAdd, setShowAdd] = useState(false);
+
+  useEffect(() => { loadAll() }, [vehicles]);
+
+  async function loadAll() {
+    const d = {};
+    for (const v of vehicles) {
+      const km = await DB.getKmHistory(v.id);
+      const iss = await DB.getIssues(v.id);
+      const svcs = await DB.getServiceRecords(v.id);
+      const last = km.length > 0 ? km[km.length-1].odometer : v.last_service_km;
+      const since = last - v.last_service_km;
+      const to = v.service_interval_km - since;
+      d[v.id] = {km, openIssues:iss.filter(i=>!i.resolved), allIssues:iss, svcs, last, since, to};
+    }
+    setFleet(d);
+    setLoading(false);
+  }
+
+  async function reload() {
+    setLoading(true);
+    await DB.pullAll();
+    const v = await DB.getVehicles();
+    setVehicles(v);
+    setFleet({});
+    setDetail(null);
+  }
+
+  async function addVehicle(v) {
+    const current = await DB.getVehicles();
+    if (current.find(x => x.id.toLowerCase() === v.id.toLowerCase())) { alert('Vehicle ID already exists.'); return; }
+    const updated = [...current, v];
+    await DB.saveVehicles(updated);
+    setVehicles(updated);
+    setShowAdd(false);
+  }
+
+  if (loading) return React.createElement('div', {className:'empty', style:{paddingTop:60}}, 'Loading fleet...');
+
+  if (detail) {
+    const v = vehicles.find(x => x.id === detail);
+    const d = fleet[detail] || {};
+    return React.createElement(VehicleDetail, {vehicle:v, data:d, vehicles, setVehicles, onBack:reload});
+  }
+
+  const anyAlert = vehicles.some(v => fleet[v.id] && fleet[v.id].to <= 500);
+
+  return React.createElement('div', {className:'page'},
+    React.createElement('span', {className:'slabel'}, 'FLEET OVERVIEW'),
+    anyAlert && React.createElement('div', {className:'alert-strip'},
+      '⚠ ', ' One or more vehicles are due for service soon'
+    ),
+    React.createElement('div', {className:'dash-grid'},
+      vehicles.map(v => {
+        const d = fleet[v.id] || {};
+        const cls = d.to <= 0 ? 'badge badge-fail' : d.to <= 500 ? 'badge badge-warn' : 'badge badge-ok';
+        const txt = d.to === undefined ? '' : d.to <= 0 ? 'SVC OVERDUE' : d.to <= 500 ? fmtKm(d.to)+'km to svc' : fmtKm(d.to)+'km to svc';
+        return React.createElement('div', {key:v.id, className:'dc', style:{borderLeft:'3px solid '+v.color}, onClick:()=>setDetail(v.id)},
+          React.createElement('div', {className:'dc-id', style:{color:v.color}}, v.id),
+          React.createElement('div', {className:'dc-model'}, v.year+' '+v.make+' '+v.model),
+          txt && React.createElement('div', {className:cls, style:{marginBottom:10}}, txt),
+          React.createElement('div', {className:'dc-stats'},
+            React.createElement('div', null, React.createElement('div', {className:'ds-lbl'}, 'CURRENT KM'), React.createElement('div', {className:'ds-val'}, d.last ? fmtKm(d.last) : '—')),
+            React.createElement('div', null, React.createElement('div', {className:'ds-lbl'}, 'SINCE SVC'), React.createElement('div', {className:'ds-val'}, d.since !== undefined ? fmtKm(d.since) : '—')),
+            React.createElement('div', null, React.createElement('div', {className:'ds-lbl'}, 'ISSUES'), React.createElement('div', {className:'ds-val'+(d.openIssues&&d.openIssues.length>0?' ds-issues':'')}, d.openIssues ? d.openIssues.length : 0))
+          )
+        );
+      })
+    ),
+    React.createElement('button', {className:'add-btn', onClick:()=>setShowAdd(!showAdd)}, showAdd ? 'CANCEL' : '+ ADD VEHICLE'),
+    showAdd && React.createElement(AddVehicleForm, {onAdd:addVehicle})
+  );
+}
+
+function AddVehicleForm({onAdd}) {
+  const [f, setF] = useState({id:'',make:'',model:'',year:new Date().getFullYear(),color:COLORS[0],last_service_km:'',last_service_date:'',service_interval_km:5000});
+
+  function save() {
+    if (!f.id || !f.make || !f.model) { alert('Fill in ID, make, and model.'); return; }
+    onAdd({...f, year:parseInt(f.year), last_service_km:parseInt(f.last_service_km)||0, service_interval_km:parseInt(f.service_interval_km)||5000, updated_at:new Date().toISOString()});
+  }
+
+  return React.createElement('div', {className:'add-v-form'},
+    React.createElement('div', {className:'field'},
+      React.createElement('label', {className:'flabel'}, 'VEHICLE ID'),
+      React.createElement('input', {className:'finput', placeholder:'e.g. LV159', value:f.id, onChange:e=>setF({...f,id:e.target.value.toUpperCase()})})
+    ),
+    React.createElement('div', {style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}},
+      React.createElement('div', {className:'field'},
+        React.createElement('label', {className:'flabel'}, 'MAKE'),
+        React.createElement('input', {className:'finput', placeholder:'Toyota', value:f.make, onChange:e=>setF({...f,make:e.target.value})})
+      ),
+      React.createElement('div', {className:'field'},
+        React.createElement('label', {className:'flabel'}, 'MODEL'),
+        React.createElement('input', {className:'finput', placeholder:'HiLux', value:f.model, onChange:e=>setF({...f,model:e.target.value})})
+      )
+    ),
+    React.createElement('div', {style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}},
+      React.createElement('div', {className:'field'},
+        React.createElement('label', {className:'flabel'}, 'YEAR'),
+        React.createElement('input', {className:'finput', type:'number', value:f.year, onChange:e=>setF({...f,year:e.target.value})})
+      ),
+      React.createElement('div', {className:'field'},
+        React.createElement('label', {className:'flabel'}, 'SVC INTERVAL (km)'),
+        React.createElement('input', {className:'finput', type:'number', value:f.service_interval_km, onChange:e=>setF({...f,service_interval_km:e.target.value})})
+      )
+    ),
+    React.createElement('div', {style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}},
+      React.createElement('div', {className:'field'},
+        React.createElement('label', {className:'flabel'}, 'LAST SVC (km)'),
+        React.createElement('input', {className:'finput', type:'number', placeholder:'0', value:f.last_service_km, onChange:e=>setF({...f,last_service_km:e.target.value})})
+      ),
+      React.createElement('div', {className:'field'},
+        React.createElement('label', {className:'flabel'}, 'LAST SVC DATE'),
+        React.createElement('input', {className:'finput', type:'date', value:f.last_service_date, onChange:e=>setF({...f,last_service_date:e.target.value})})
+      )
+    ),
+    React.createElement('div', {className:'field'},
+      React.createElement('label', {className:'flabel'}, 'COLOUR'),
+      React.createElement('div', {className:'color-row'},
+        COLORS.map(c => React.createElement('div', {key:c, className:'color-swatch'+(f.color===c?' sel':''), style:{background:c}, onClick:()=>setF({...f,color:c})}))
+      )
+    ),
+    React.createElement('button', {className:'svc-save', onClick:save}, 'ADD VEHICLE')
+  );
+}
+
+// ─── VEHICLE DETAIL ─────────────────────────────────────
+function VehicleDetail({vehicle, data, vehicles, setVehicles, onBack}) {
+  const [tab, setTab] = useState('overview');
+  const [issues, setIssues] = useState(data.allIssues || []);
+  const [svcs, setSvcs] = useState(data.svcs || []);
+  const [showSvcForm, setShowSvcForm] = useState(false);
+  const [sf, setSf] = useState({date:today(),odometer:'',tech:'',completed:'',outstanding:''});
+
+  const open = issues.filter(i => !i.resolved);
+  const resolved = issues.filter(i => i.resolved);
+  const km = data.km || [];
+  const chartData = km.slice(-30).map(d => ({date:d.date.slice(5), km:d.odometer}));
+  const lastKm = data.last || vehicle.last_service_km;
+  const to = data.to;
+
+  async function resolve(id) {
+    const updated = await DB.resolveIssue(vehicle.id, id);
+    setIssues(updated);
+  }
+
+  async function saveSvc() {
+    if (!sf.odometer) { alert('Enter odometer reading.'); return; }
+    const rec = { id: uid(), vehicle_id: vehicle.id, date: sf.date, odometer: parseInt(sf.odometer), technician: sf.tech, completed: sf.completed, outstanding: sf.outstanding, created_at: new Date().toISOString() };
+    await DB.addServiceRecord(vehicle.id, rec);
+    const updated = await DB.updateVehicleService(vehicle.id, parseInt(sf.odometer), sf.date);
+    setVehicles(updated);
+    setSvcs([...svcs, rec]);
+    setShowSvcForm(false);
+    setSf({date:today(),odometer:'',tech:'',completed:'',outstanding:''});
+  }
+
+  return React.createElement('div', {className:'page'},
+    React.createElement('button', {className:'back', onClick:onBack}, '← Fleet overview'),
+    React.createElement('div', {className:'dh', style:{borderLeft:'3px solid '+vehicle.color}},
+      React.createElement('div', {className:'dh-id', style:{color:vehicle.color}}, vehicle.id),
+      React.createElement('div', {className:'dh-model'}, vehicle.year+' '+vehicle.make+' '+vehicle.model),
+      React.createElement('div', {className:'dh-meta'},
+        React.createElement('span', null, 'Current: ', React.createElement('strong', null, fmtKm(lastKm)+' km')),
+        React.createElement('span', null, 'Since svc: ', React.createElement('strong', null, fmtKm(data.since))),
+        to <= 0
+          ? React.createElement('span', {style:{color:'var(--fail-tx)',fontWeight:600}}, 'OVERDUE by '+fmtKm(Math.abs(to))+' km')
+          : React.createElement('span', {style:{color:to<=500?'var(--warn-tx)':'var(--tx2)'}}, React.createElement('strong', null, fmtKm(to)), ' km to next service')
+      )
+    ),
+    React.createElement('div', {className:'tabs'},
+      ['overview','issues','services'].map(t =>
+        React.createElement('button', {key:t, className:'tbtn'+(tab===t?' on':''), onClick:()=>setTab(t)},
+          t.charAt(0).toUpperCase()+t.slice(1),
+          t==='issues' && open.length > 0 && React.createElement('span', {className:'tb-badge'}, open.length)
+        )
+      )
+    ),
+
+    tab === 'overview' && React.createElement('div', null,
+      React.createElement('div', {className:'chart-wrap'},
+        React.createElement('div', {className:'chart-title'}, 'ODOMETER HISTORY (last 30 entries)'),
+        chartData.length > 0
+          ? React.createElement(ResponsiveContainer, {width:'100%', height:220},
+              React.createElement(LineChart, {data:chartData, margin:{top:4,right:8,left:0,bottom:4}},
+                React.createElement(CartesianGrid, {strokeDasharray:'2 4', stroke:'rgba(128,128,128,0.15)'}),
+                React.createElement(XAxis, {dataKey:'date', tick:{fontSize:10,fill:'#888'}, stroke:'transparent', interval:'preserveStartEnd'}),
+                React.createElement(YAxis, {tick:{fontSize:10,fill:'#888'}, stroke:'transparent', tickFormatter:v=>Math.round(v/1000)+'k', width:34}),
+                React.createElement(Tooltip, {contentStyle:{background:'var(--bg)',border:'0.5px solid var(--bd2)',borderRadius:8,fontSize:12}, formatter:v=>[fmtKm(v)+' km','Odometer'], labelStyle:{color:'var(--tx2)'}}),
+                React.createElement(Line, {type:'monotone', dataKey:'km', stroke:vehicle.color, strokeWidth:2, dot:false, activeDot:{r:4,fill:vehicle.color}}),
+                svcs.map((s,i) => React.createElement(ReferenceLine, {key:i, x:s.date?s.date.slice(5):undefined, stroke:'#185FA5', strokeDasharray:'3 3', strokeWidth:1}))
+              )
+            )
+          : React.createElement('div', {className:'empty'}, 'No odometer history yet.')
+      ),
+      React.createElement('div', {className:'info-card'},
+        React.createElement('div', {className:'ir'}, React.createElement('span', {className:'ik'}, 'Last service'), React.createElement('span', {className:'iv'}, fmtDate(vehicle.last_service_date)+' @ '+fmtKm(vehicle.last_service_km)+' km')),
+        React.createElement('div', {className:'ir'}, React.createElement('span', {className:'ik'}, 'Service interval'), React.createElement('span', {className:'iv'}, fmtKm(vehicle.service_interval_km)+' km')),
+        React.createElement('div', {className:'ir'}, React.createElement('span', {className:'ik'}, 'Next service due at'), React.createElement('span', {className:'iv', style:{color:vehicle.color}}, fmtKm(vehicle.last_service_km + vehicle.service_interval_km)+' km')),
+        React.createElement('div', {className:'ir'}, React.createElement('span', {className:'ik'}, 'Remaining'), React.createElement('span', {className:'iv', style:{color:to<=0?'var(--fail-tx)':to<=500?'var(--warn-tx)':'var(--tx)'}}, to<=0?'Overdue by '+fmtKm(Math.abs(to))+' km':fmtKm(to)+' km remaining'))
+      )
+    ),
+
+    tab === 'issues' && React.createElement('div', null,
+      open.length === 0 && React.createElement('div', {className:'empty'}, 'No outstanding issues'),
+      open.map(iss => React.createElement('div', {key:iss.id, className:'issue-card'},
+        React.createElement('div', {className:'ic-top'},
+          React.createElement('div', null,
+            React.createElement('span', {className:'badge badge-fail'}, iss.category),
+            React.createElement('div', {className:'ic-lbl'}, iss.label)
+          ),
+          React.createElement('button', {className:'resolve-btn', onClick:()=>resolve(iss.id)}, 'MARK RESOLVED')
+        ),
+        iss.description && React.createElement('div', {className:'ic-desc'}, iss.description),
+        React.createElement('div', {className:'ic-meta'}, 'Reported by '+iss.reported_by+' · '+fmtDate(iss.date))
+      )),
+      resolved.length > 0 && React.createElement('div', null,
+        React.createElement('span', {className:'slabel', style:{marginTop:20}}, 'RESOLVED'),
+        resolved.map(iss => React.createElement('div', {key:iss.id, className:'issue-card resolved'},
+          React.createElement('div', {className:'ic-top'},
+            React.createElement('div', null,
+              React.createElement('span', {className:'badge badge-ok'}, iss.category),
+              React.createElement('div', {className:'ic-lbl'}, iss.label)
+            ),
+            React.createElement('span', {className:'resolved-tick'}, '✓ '+fmtDate(iss.resolved_date))
+          ),
+          React.createElement('div', {className:'ic-meta'}, 'Reported '+fmtDate(iss.date))
+        ))
+      )
+    ),
+
+    tab === 'services' && React.createElement('div', null,
+      React.createElement('button', {className:'add-btn', onClick:()=>setShowSvcForm(!showSvcForm)}, showSvcForm ? 'CANCEL' : '+ LOG SERVICE RECORD'),
+      showSvcForm && React.createElement('div', {className:'svc-form'},
+        React.createElement('div', {className:'field'}, React.createElement('label', {className:'flabel'}, 'DATE'), React.createElement('input', {className:'finput', type:'date', value:sf.date, onChange:e=>setSf({...sf,date:e.target.value})})),
+        React.createElement('div', {className:'field'}, React.createElement('label', {className:'flabel'}, 'ODOMETER AT SERVICE (km)'), React.createElement('input', {className:'finput', type:'number', placeholder:'e.g. 50000', value:sf.odometer, onChange:e=>setSf({...sf,odometer:e.target.value})})),
+        React.createElement('div', {className:'field'}, React.createElement('label', {className:'flabel'}, 'TECHNICIAN'), React.createElement('input', {className:'finput', placeholder:'Name', value:sf.tech, onChange:e=>setSf({...sf,tech:e.target.value})})),
+        React.createElement('div', {className:'field'}, React.createElement('label', {className:'flabel'}, 'WORK COMPLETED'), React.createElement('textarea', {className:'finput', rows:3, style:{resize:'vertical'}, placeholder:'Oil & filter, greasing, tyres...', value:sf.completed, onChange:e=>setSf({...sf,completed:e.target.value})})),
+        React.createElement('div', {className:'field'}, React.createElement('label', {className:'flabel'}, 'OUTSTANDING / NEXT SERVICE NOTES'), React.createElement('textarea', {className:'finput', rows:3, style:{resize:'vertical'}, placeholder:'Items to address at next service...', value:sf.outstanding, onChange:e=>setSf({...sf,outstanding:e.target.value})})),
+        React.createElement('button', {className:'svc-save', onClick:saveSvc}, 'SAVE SERVICE RECORD')
+      ),
+      svcs.length === 0 && !showSvcForm && React.createElement('div', {className:'empty'}, 'No service records yet.'),
+      [...svcs].reverse().map(s => React.createElement('div', {key:s.id, className:'svc-card'},
+        React.createElement('div', {className:'svc-hdr'},
+          React.createElement('span', {className:'svc-date'}, fmtDate(s.date)),
+          React.createElement('span', {className:'svc-km'}, fmtKm(s.odometer)+' km')
+        ),
+        s.technician && React.createElement('div', {className:'svc-tech'}, 'Technician: '+s.technician),
+        s.completed && React.createElement('div', {className:'svc-sect'}, React.createElement('div', {className:'svc-sect-lbl'}, 'COMPLETED'), React.createElement('div', {className:'svc-sect-txt'}, s.completed)),
+        s.outstanding && React.createElement('div', {className:'svc-sect pend'}, React.createElement('div', {className:'svc-sect-lbl'}, 'OUTSTANDING / NEXT SERVICE'), React.createElement('div', {className:'svc-sect-txt'}, s.outstanding))
+      ))
+    )
+  );
+}
+
+// ═══════════════════════════════════════════════════════
+//  MOUNT + SERVICE WORKER
+// ═══════════════════════════════════════════════════════
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(e => console.warn('SW reg failed', e));
+  });
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
+</script>
+</body>
+</html>
