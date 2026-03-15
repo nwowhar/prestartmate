@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS prestarts (
   checks JSONB NOT NULL DEFAULT '{}',
   comments JSONB NOT NULL DEFAULT '{}',
   has_critical_fail BOOLEAN DEFAULT FALSE,
+  general_comment TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(vehicle_id, date)
 );
