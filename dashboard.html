@@ -162,6 +162,7 @@ button,input,textarea,select{font-family:inherit;font-size:14px;color:var(--tx)}
 var SUPABASE_URL = 'https://gcnnictyxwxwtahmgidq.supabase.co';
 var SUPABASE_KEY = 'sb_publishable_WVOZIN8HnFgldl4_wkoHvQ_EYLPplKo';
 var SUPERVISOR_PIN = '1111';
+var ALERT_EMAIL = 'supervisor@yourcompany.com.au'; // ← change this to your email
 
 var _sb = null;
 var useState=React.useState, useEffect=React.useEffect, h=React.createElement;
@@ -449,50 +450,74 @@ function VehicleDetail(props){
     if(!vehicle.id) return;
     setLoading(true);
 
-    // Step 1: load from IDB immediately so data shows instantly
-    Promise.all([
+    // Step 1 — IDB instantly (same device as worker)
+    var idbPs = [];
+    var idbPromises = [
       IDB.get('issues_'+vehicle.id),
       IDB.get('km_'+vehicle.id),
       IDB.get('svcs_'+vehicle.id)
-    ]).then(function(local){
-      if(local[0]) setIssues(local[0]);
-      if(local[1]) setKmHist(local[1]);
-      if(local[2]) setSvcs(local[2]);
-      // build prestarts from IDB — scan keys for ps_{id}_* entries
-      // we store them individually so collect last 30 days
-      var psPromises=[];
-      for(var i=0;i<30;i++){
-        var d=new Date(); d.setDate(d.getDate()-i);
-        var ds=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-        psPromises.push(IDB.get('ps_'+vehicle.id+'_'+ds));
-      }
-      return Promise.all(psPromises);
-    }).then(function(psResults){
-      var localPs=psResults.filter(Boolean).sort(function(a,b){ return b.date.localeCompare(a.date); });
-      if(localPs.length>0){ setPrestarts(localPs); setLoading(false); }
+    ];
+    // scan last 90 days for prestarts
+    for(var i=0; i<90; i++){
+      var dd=new Date(); dd.setDate(dd.getDate()-i);
+      var ds=dd.getFullYear()+'-'+String(dd.getMonth()+1).padStart(2,'0')+'-'+String(dd.getDate()).padStart(2,'0');
+      idbPromises.push(IDB.get('ps_'+vehicle.id+'_'+ds));
+    }
 
-      // Step 2: top up from Supabase in background
+    Promise.all(idbPromises).then(function(res){
+      if(res[0]) setIssues(res[0]);
+      if(res[1]) setKmHist(res[1]);
+      if(res[2]) setSvcs(res[2]);
+      idbPs = res.slice(3).filter(Boolean).sort(function(a,b){ return b.date.localeCompare(a.date); });
+      if(idbPs.length > 0) setPrestarts(idbPs);
+      setLoading(false);
+
+      // Step 2 — Supabase refresh (cross-device)
       if(!_sb) return;
       Promise.all([
         _sb.from('issues').select('*').eq('vehicle_id',vehicle.id).order('date',{ascending:false}),
         _sb.from('km_history').select('*').eq('vehicle_id',vehicle.id).order('date',{ascending:true}),
         _sb.from('service_records').select('*').eq('vehicle_id',vehicle.id).order('date',{ascending:false}),
-        _sb.from('prestarts').select('id,date,submitted_by,odometer,has_critical_fail,general_comment,checks,comments').eq('vehicle_id',vehicle.id).order('date',{ascending:false}).limit(60)
+        _sb.from('prestarts').select('id,date,submitted_by,odometer,has_critical_fail,general_comment,checks,comments').eq('vehicle_id',vehicle.id).order('date',{ascending:false}).limit(90)
       ]).then(function(results){
-        if(results[0].data){ setIssues(results[0].data); IDB.set('issues_'+vehicle.id,results[0].data); }
-        if(results[1].data){ setKmHist(results[1].data); IDB.set('km_'+vehicle.id,results[1].data); }
-        if(results[2].data){ setSvcs(results[2].data); IDB.set('svcs_'+vehicle.id,results[2].data); }
-        if(results[3].data && results[3].data.length>0){ setPrestarts(results[3].data); }
-        setLoading(false);
-      }).catch(function(e){ console.warn('Supabase detail load failed:',e.message); setLoading(false); });
-    });
+        var r0=results[0],r1=results[1],r2=results[2],r3=results[3];
+        if(r0.error) console.error('issues fetch:',r0.error.message);
+        if(r3.error) console.error('prestarts fetch:',r3.error.message);
+        if(r0.data && r0.data.length > 0){ setIssues(r0.data); IDB.set('issues_'+vehicle.id,r0.data); }
+        if(r1.data && r1.data.length > 0){ setKmHist(r1.data); IDB.set('km_'+vehicle.id,r1.data); }
+        if(r2.data && r2.data.length > 0){ setSvcs(r2.data); IDB.set('svcs_'+vehicle.id,r2.data); }
+        // merge Supabase prestarts with IDB ones — Supabase wins if it has data
+        if(r3.data && r3.data.length > 0){
+          setPrestarts(r3.data);
+        } else if(idbPs.length === 0){
+          // no data anywhere — show empty state clearly
+          setPrestarts([]);
+        }
+        // cache Supabase prestarts back to IDB
+        if(r3.data) r3.data.forEach(function(p){
+          IDB.set('ps_'+p.vehicle_id+'_'+p.date, p);
+        });
+      }).catch(function(e){ console.warn('Supabase refresh failed:',e.message); });
+    }).catch(function(e){ console.warn('IDB load failed:',e); setLoading(false); });
   },[vehicle.id]);
 
   var open = issues.filter(function(i){ return !i.resolved; });
   var resolved = issues.filter(function(i){ return i.resolved; });
   var lastKm = kmHist.length>0 ? kmHist[kmHist.length-1].odometer : vehicle.last_service_km;
-  var since = lastKm - vehicle.last_service_km;
-  var to = vehicle.service_interval_km - since;
+  var since = lastKm - (vehicle.last_service_km||0);
+  var to = (vehicle.service_interval_km||5000) - since;
+
+  function sendServiceAlert(){
+    var subject = 'Service Due Alert \u2014 '+vehicle.id;
+    var body = 'Vehicle: '+vehicle.id+' ('+vehicle.year+' '+vehicle.make+' '+vehicle.model+')\n\n'
+      +'Current odometer: '+fmtKm(lastKm)+' km\n'
+      +'Last service: '+fmtDate(vehicle.last_service_date)+' @ '+fmtKm(vehicle.last_service_km)+' km\n'
+      +'Service due at: '+fmtKm((vehicle.last_service_km||0)+(vehicle.service_interval_km||5000))+' km\n'
+      +'Remaining: '+fmtKm(Math.max(0,to))+' km\n\n'
+      +(to<=0 ? 'STATUS: SERVICE OVERDUE' : 'STATUS: '+fmtKm(to)+' km to service')
+      +'\n\nPlease arrange a service at your earliest convenience.';
+    window.location.href='mailto:'+ALERT_EMAIL+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
+  }
 
   function resolve(id){
     _sb.from('issues').update({resolved:true,resolved_date:today()}).eq('id',id).then(function(){
@@ -516,9 +541,17 @@ function VehicleDetail(props){
 
   return h('div',{className:'page'},
     h('div',{className:'dh',style:{borderLeft:'3px solid '+(vehicle.color||'var(--accent)')}},
-      h('div',{className:'dh-id',style:{color:vehicle.color}},vehicle.id),
-      h('div',{className:'dh-model'},vehicle.year+' '+vehicle.make+' '+vehicle.model),
-      h('div',{className:'dh-meta'},
+      h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}},
+        h('div',null,
+          h('div',{className:'dh-id',style:{color:vehicle.color}},vehicle.id),
+          h('div',{className:'dh-model'},vehicle.year+' '+vehicle.make+' '+vehicle.model)
+        ),
+        to <= 250 && h('button',{
+          onClick:sendServiceAlert,
+          style:{background:'var(--warn-bg)',border:'0.5px solid var(--warn-bd)',borderRadius:'var(--r)',padding:'7px 12px',fontSize:11,fontWeight:700,color:'var(--warn-tx)',cursor:'pointer',letterSpacing:'.04em'}
+        },'\u2709 Email service alert')
+      ),
+      h('div',{className:'dh-meta',style:{marginTop:8}},
         h('span',null,'Current: ',h('strong',null,fmtKm(lastKm)+' km')),
         h('span',null,'Since svc: ',h('strong',null,fmtKm(since)+' km')),
         to<=0
@@ -539,12 +572,33 @@ function VehicleDetail(props){
 
     // ── PRESTARTS TAB ──
     !loading && tab==='prestarts' && h('div',null,
-      prestarts.length===0 && h('div',{className:'empty'},'No prestarts recorded yet.'),
+      // Today's status banner
+      (function(){
+        var todayPs = prestarts.find(function(p){ return p.date===today(); });
+        var fails = todayPs && todayPs.checks ? Object.keys(todayPs.checks).filter(function(k){ return todayPs.checks[k]==='fail'; }).length : 0;
+        return h('div',{style:{
+          background: todayPs ? (todayPs.has_critical_fail ? 'var(--fail-bg)' : fails > 0 ? 'var(--warn-bg)' : 'var(--ok-bg)') : 'var(--bg2)',
+          border: '0.5px solid '+(todayPs ? (todayPs.has_critical_fail ? 'var(--fail-bd)' : fails > 0 ? 'var(--warn-bd)' : 'var(--ok-bd)') : 'var(--bd)'),
+          borderRadius:'var(--r)', padding:'12px 14px', marginBottom:12
+        }},
+          h('div',{style:{fontSize:10,letterSpacing:'.1em',fontWeight:700,marginBottom:4,
+            color: todayPs ? (todayPs.has_critical_fail ? 'var(--fail-tx)' : fails > 0 ? 'var(--warn-tx)' : 'var(--ok-tx)') : 'var(--tx3)'
+          }}, 'TODAY \u2014 '+fmtDate(today())),
+          todayPs
+            ? h('div',{style:{fontSize:13,color: todayPs.has_critical_fail ? 'var(--fail-tx)' : fails > 0 ? 'var(--warn-tx)' : 'var(--ok-tx)'}},
+                '\u2713 Submitted by '+todayPs.submitted_by+' at '+fmtKm(todayPs.odometer)+' km'
+                +(todayPs.has_critical_fail ? ' \u2014 \u26A0 Cat A/B fault' : fails > 0 ? ' \u2014 '+fails+' fault'+(fails>1?'s':'') : ' \u2014 All clear')
+              )
+            : h('div',{style:{fontSize:13,color:'var(--tx3)'}},'\u2014 Not yet submitted')
+        );
+      })(),
+      prestarts.length===0 && h('div',{className:'empty',style:{paddingTop:20}},'No prestarts recorded yet.'),
       prestarts.map(function(ps){
         var fails = ps.checks ? Object.keys(ps.checks).filter(function(k){ return ps.checks[k]==='fail'; }) : [];
-        return h('div',{key:ps.id,className:'ps-card'},
+        var isToday = ps.date===today();
+        return h('div',{key:ps.id,className:'ps-card',style:isToday?{borderColor:'var(--ok-bd)'}:{}},
           h('div',{className:'ps-hdr'},
-            h('span',{className:'ps-date'},fmtDate(ps.date)),
+            h('span',{className:'ps-date'},fmtDate(ps.date)+(isToday?' \u2014 today':'')),
             h('span',{className:'ps-km'},ps.odometer?fmtKm(ps.odometer)+' km':'')
           ),
           h('div',{className:'ps-by'},'Submitted by '+ps.submitted_by),
