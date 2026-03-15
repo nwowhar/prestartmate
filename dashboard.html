@@ -315,13 +315,14 @@ function FleetOverview(props){
   var fl = useState({}), fleetData=fl[0], setFleetData=fl[1];
   var sa = useState(false), showAdd=sa[0], setShowAdd=sa[1];
   var ev = useState(null), editVehicle=ev[0], setEditVehicle=ev[1];
+  var dv = useState(null), deleteVehicle=dv[0], setDeleteVehicle=dv[1];
+  var dl = useState(false), deleting=dl[0], setDeleting=dl[1];
 
   useEffect(function(){
     var d={};
     var vids = props.vehicles.map(function(v){ return v.id; });
     if(vids.length===0){ setFleetData({}); return; }
 
-    // IDB first for instant display
     var idbChain = Promise.resolve();
     vids.forEach(function(vid){
       idbChain = idbChain.then(function(){
@@ -339,7 +340,6 @@ function FleetOverview(props){
     });
     idbChain.then(function(){ setFleetData(Object.assign({},d)); });
 
-    // Then refresh from Supabase in background
     if(!_sb) return;
     _sb.from('km_history').select('vehicle_id,odometer,date').in('vehicle_id',vids).order('date',{ascending:false}).then(function(r){
       (r.data||[]).forEach(function(row){
@@ -374,13 +374,53 @@ function FleetOverview(props){
     });
   }
 
+  function confirmDelete(){
+    if(!deleteVehicle) return;
+    setDeleting(true);
+    _sb.from('vehicles').delete().eq('id',deleteVehicle.id).then(function(){
+      setDeleteVehicle(null); setDeleting(false); props.reload();
+    }).catch(function(e){
+      alert('Delete failed: '+e.message); setDeleting(false);
+    });
+  }
+
   var anyAlert = props.vehicles.some(function(v){
     var d = fleetData[v.id]||{};
     if(d.last===undefined) return false;
     return (d.last - v.last_service_km) >= (v.service_interval_km - 500);
   });
 
-  // show edit form inline
+  // Delete confirmation overlay
+  if(deleteVehicle){
+    return h('div',{className:'page'},
+      h('div',{style:{
+        background:'var(--bg)',border:'0.5px solid var(--fail-bd)',borderRadius:'var(--rl)',
+        padding:'24px 20px',textAlign:'center',marginTop:40
+      }},
+        h('div',{style:{fontSize:24,marginBottom:8}},'\u26A0'),
+        h('div',{style:{fontSize:17,fontWeight:700,marginBottom:6}},'Delete '+deleteVehicle.id+'?'),
+        h('div',{style:{fontSize:13,color:'var(--tx2)',marginBottom:6}},
+          deleteVehicle.year+' '+deleteVehicle.make+' '+deleteVehicle.model
+        ),
+        h('div',{style:{fontSize:13,color:'var(--fail-tx)',marginBottom:20,lineHeight:1.6}},
+          'This will permanently delete the vehicle and all its prestart records, issues, KM history and service records from the database. This cannot be undone.'
+        ),
+        h('div',{style:{display:'flex',gap:10}},
+          h('button',{
+            onClick:function(){setDeleteVehicle(null);},
+            style:{flex:1,padding:'13px',background:'transparent',border:'0.5px solid var(--bd2)',borderRadius:'var(--r)',fontSize:13,cursor:'pointer',color:'var(--tx2)'}
+          },'Cancel'),
+          h('button',{
+            onClick:confirmDelete,
+            disabled:deleting,
+            style:{flex:1,padding:'13px',background:'var(--fail-tx)',border:'none',borderRadius:'var(--r)',fontSize:13,fontWeight:700,cursor:'pointer',color:'#fff',opacity:deleting?.5:1}
+          }, deleting?'Deleting...':'Yes, delete permanently')
+        )
+      )
+    );
+  }
+
+  // Edit form
   if(editVehicle){
     return h('div',{className:'page'},
       h('span',{className:'slabel'},'EDIT VEHICLE'),
@@ -405,10 +445,16 @@ function FleetOverview(props){
               h('div',{className:'fc-id',style:{color:v.color}},v.id),
               h('div',{className:'fc-model'},v.year+' '+v.make+' '+v.model)
             ),
-            h('button',{
-              onClick:function(e){e.stopPropagation();setEditVehicle(v);},
-              style:{background:'var(--bg2)',border:'0.5px solid var(--bd)',borderRadius:6,padding:'4px 9px',fontSize:11,color:'var(--tx2)',cursor:'pointer',flexShrink:0,marginLeft:6}
-            },'Edit')
+            h('div',{style:{display:'flex',gap:5,flexShrink:0,marginLeft:6}},
+              h('button',{
+                onClick:function(e){e.stopPropagation();setEditVehicle(v);},
+                style:{background:'var(--bg2)',border:'0.5px solid var(--bd)',borderRadius:6,padding:'4px 9px',fontSize:11,color:'var(--tx2)',cursor:'pointer'}
+              },'Edit'),
+              h('button',{
+                onClick:function(e){e.stopPropagation();setDeleteVehicle(v);},
+                style:{background:'var(--fail-bg)',border:'0.5px solid var(--fail-bd)',borderRadius:6,padding:'4px 9px',fontSize:11,color:'var(--fail-tx)',cursor:'pointer'}
+              },'\u2715')
+            )
           ),
           badgeTxt&&h('div',{className:badgeCls,style:{marginTop:6,marginBottom:6}},badgeTxt),
           h('div',{className:'fc-stats',style:{cursor:'pointer'},onClick:function(){props.onOpen(v.id);}},
