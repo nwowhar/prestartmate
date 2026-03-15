@@ -166,7 +166,7 @@ var SUPERVISOR_PIN = '1111';
 var _sb = null;
 var useState=React.useState, useEffect=React.useEffect, h=React.createElement;
 
-function today(){ return new Date().toISOString().split('T')[0]; }
+function today(){ var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 function fmtDate(d){ try{ return new Date(d+'T12:00:00').toLocaleDateString('en-AU',{day:'2-digit',month:'short',year:'numeric'}); }catch(e){ return d; } }
 function fmtKm(n){ return Number(n).toLocaleString('en-AU'); }
 function uid(){ return crypto.randomUUID?crypto.randomUUID():Math.random().toString(36).slice(2)+Date.now().toString(36); }
@@ -272,18 +272,42 @@ function FleetOverview(props){
     var d={};
     var vids = props.vehicles.map(function(v){ return v.id; });
     if(vids.length===0){ setFleetData({}); return; }
+
+    // IDB first for instant display
+    var idbChain = Promise.resolve();
+    vids.forEach(function(vid){
+      idbChain = idbChain.then(function(){
+        return Promise.all([
+          IDB.get('km_'+vid),
+          IDB.get('issues_'+vid)
+        ]).then(function(res){
+          var km=res[0]||[], iss=res[1]||[];
+          if(km.length>0) d[vid]={last:km[km.length-1].odometer};
+          var openCount=iss.filter(function(i){return !i.resolved;}).length;
+          if(!d[vid]) d[vid]={};
+          d[vid].issues=openCount;
+        });
+      });
+    });
+    idbChain.then(function(){ setFleetData(Object.assign({},d)); });
+
+    // Then refresh from Supabase in background
+    if(!_sb) return;
     _sb.from('km_history').select('vehicle_id,odometer,date').in('vehicle_id',vids).order('date',{ascending:false}).then(function(r){
       (r.data||[]).forEach(function(row){
-        if(!d[row.vehicle_id]) d[row.vehicle_id]={last:row.odometer};
+        if(!d[row.vehicle_id]) d[row.vehicle_id]={};
+        if(!d[row.vehicle_id].last) d[row.vehicle_id].last=row.odometer;
       });
       return _sb.from('issues').select('vehicle_id,id').in('vehicle_id',vids).eq('resolved',false);
     }).then(function(r2){
-      (r2.data||[]).forEach(function(row){
-        if(!d[row.vehicle_id]) d[row.vehicle_id]={};
-        d[row.vehicle_id].issues = (d[row.vehicle_id].issues||0)+1;
+      var counts={};
+      (r2.data||[]).forEach(function(row){ counts[row.vehicle_id]=(counts[row.vehicle_id]||0)+1; });
+      vids.forEach(function(vid){
+        if(!d[vid]) d[vid]={};
+        d[vid].issues=counts[vid]||0;
       });
-      setFleetData(d);
-    }).catch(function(){setFleetData({});});
+      setFleetData(Object.assign({},d));
+    }).catch(function(e){ console.warn('Fleet overview refresh failed:',e.message); });
   },[props.vehicles]);
 
   function addVehicle(v){
@@ -424,18 +448,44 @@ function VehicleDetail(props){
   useEffect(function(){
     if(!vehicle.id) return;
     setLoading(true);
+
+    // Step 1: load from IDB immediately so data shows instantly
     Promise.all([
-      _sb.from('issues').select('*').eq('vehicle_id',vehicle.id).order('date',{ascending:false}),
-      _sb.from('km_history').select('*').eq('vehicle_id',vehicle.id).order('date',{ascending:true}),
-      _sb.from('service_records').select('*').eq('vehicle_id',vehicle.id).order('date',{ascending:false}),
-      _sb.from('prestarts').select('id,date,submitted_by,odometer,has_critical_fail,general_comment,checks,comments').eq('vehicle_id',vehicle.id).order('date',{ascending:false}).limit(30)
-    ]).then(function(results){
-      setIssues(results[0].data||[]);
-      setKmHist(results[1].data||[]);
-      setSvcs(results[2].data||[]);
-      setPrestarts(results[3].data||[]);
-      setLoading(false);
-    }).catch(function(){ setLoading(false); });
+      IDB.get('issues_'+vehicle.id),
+      IDB.get('km_'+vehicle.id),
+      IDB.get('svcs_'+vehicle.id)
+    ]).then(function(local){
+      if(local[0]) setIssues(local[0]);
+      if(local[1]) setKmHist(local[1]);
+      if(local[2]) setSvcs(local[2]);
+      // build prestarts from IDB — scan keys for ps_{id}_* entries
+      // we store them individually so collect last 30 days
+      var psPromises=[];
+      for(var i=0;i<30;i++){
+        var d=new Date(); d.setDate(d.getDate()-i);
+        var ds=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+        psPromises.push(IDB.get('ps_'+vehicle.id+'_'+ds));
+      }
+      return Promise.all(psPromises);
+    }).then(function(psResults){
+      var localPs=psResults.filter(Boolean).sort(function(a,b){ return b.date.localeCompare(a.date); });
+      if(localPs.length>0){ setPrestarts(localPs); setLoading(false); }
+
+      // Step 2: top up from Supabase in background
+      if(!_sb) return;
+      Promise.all([
+        _sb.from('issues').select('*').eq('vehicle_id',vehicle.id).order('date',{ascending:false}),
+        _sb.from('km_history').select('*').eq('vehicle_id',vehicle.id).order('date',{ascending:true}),
+        _sb.from('service_records').select('*').eq('vehicle_id',vehicle.id).order('date',{ascending:false}),
+        _sb.from('prestarts').select('id,date,submitted_by,odometer,has_critical_fail,general_comment,checks,comments').eq('vehicle_id',vehicle.id).order('date',{ascending:false}).limit(60)
+      ]).then(function(results){
+        if(results[0].data){ setIssues(results[0].data); IDB.set('issues_'+vehicle.id,results[0].data); }
+        if(results[1].data){ setKmHist(results[1].data); IDB.set('km_'+vehicle.id,results[1].data); }
+        if(results[2].data){ setSvcs(results[2].data); IDB.set('svcs_'+vehicle.id,results[2].data); }
+        if(results[3].data && results[3].data.length>0){ setPrestarts(results[3].data); }
+        setLoading(false);
+      }).catch(function(e){ console.warn('Supabase detail load failed:',e.message); setLoading(false); });
+    });
   },[vehicle.id]);
 
   var open = issues.filter(function(i){ return !i.resolved; });
