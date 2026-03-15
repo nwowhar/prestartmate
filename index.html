@@ -305,8 +305,18 @@ function App(){
   return h('div', null,
     h('div', {className:'hdr'},
       h('div', {className:'hdr-brand'},
-        h('span', {className:'hdr-pill'}, 'PRE'),
-        h('span', {className:'hdr-title'}, 'START')
+        screen === 'form'
+          ? h('button', {
+              onClick:function(){ setSelId(''); setWorkerName(''); setScreen('pick'); },
+              style:{background:'none',border:'none',padding:0,cursor:'pointer',display:'flex',alignItems:'center',gap:8,color:'var(--tx2)'}
+            },
+              h('span', {style:{fontSize:18,lineHeight:1}}, '\u2190'),
+              h('span', {style:{fontSize:13,color:'var(--tx3)'}}, selId)
+            )
+          : h('div', {className:'hdr-brand'},
+              h('span', {className:'hdr-pill'}, 'PRE'),
+              h('span', {className:'hdr-title'}, 'START')
+            )
       ),
       h('div', {className:'hdr-right'},
         workerName && screen !== 'pick' && h('span', {style:{fontSize:11,color:'var(--tx3)'}}, workerName),
