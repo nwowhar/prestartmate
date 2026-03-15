@@ -272,11 +272,11 @@ function App(){
   var sc = useState('loading'), screen=sc[0], setScreen=sc[1];
   var pd = useState(0), pending=pd[0], setPending=pd[1];
   var oo = useState(navigator.onLine), online=oo[0], setOnline=oo[1];
+  var wn = useState(''), workerName=wn[0], setWorkerName=wn[1];
 
   useEffect(function(){
     onPendingChange = setPending;
     _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    // pull vehicles from supabase, fall back to cache
     _sb.from('vehicles').select('*').order('id').then(function(r){
       if(r.data && r.data.length > 0){
         IDB.set('vehicles', r.data).then(function(){ setVehicles(r.data); });
@@ -304,57 +304,80 @@ function App(){
         h('span', {className:'hdr-title'}, 'START')
       ),
       h('div', {className:'hdr-right'},
+        workerName && screen !== 'pick' && h('span', {style:{fontSize:11,color:'var(--tx3)'}}, workerName),
         !online && h('span', {style:{fontSize:11,color:'var(--warn-tx)'}}, 'offline'),
         h('span', {className:syncCls, title: pending > 0 ? pending+' pending' : 'synced'})
       )
     ),
     !online && h('div', {className:'offline-bar'}, 'No connection \u2014 prestart will save and sync when back online'),
-    screen === 'pick'   && h(PickScreen,   {vehicles:vehicles, onSelect:function(id){ setSelId(id); setScreen('form'); }}),
-    screen === 'form'   && h(FormScreen,   {vehicles:vehicles, selId:selId, onDone:function(){ setScreen('done'); }, onAlready:function(){ setScreen('already'); }}),
-    screen === 'done'   && h(DoneScreen,   {selId:selId, onAnother:function(){ setSelId(''); setScreen('pick'); }}),
-    screen === 'already'&& h(AlreadyScreen,{selId:selId, onAnother:function(){ setSelId(''); setScreen('pick'); }})
+    screen === 'pick'    && h(PickScreen,    {vehicles:vehicles, workerName:workerName, setWorkerName:setWorkerName, onSelect:function(id,name){ setSelId(id); setWorkerName(name); setScreen('form'); }}),
+    screen === 'form'    && h(FormScreen,    {vehicles:vehicles, selId:selId, workerName:workerName, onDone:function(){ setScreen('done'); }, onAlready:function(){ setScreen('already'); }}),
+    screen === 'done'    && h(DoneScreen,    {selId:selId, onAnother:function(){ setSelId(''); setWorkerName(''); setScreen('pick'); }}),
+    screen === 'already' && h(AlreadyScreen, {selId:selId, onAnother:function(){ setSelId(''); setWorkerName(''); setScreen('pick'); }})
   );
 }
 
 // ── PICK SCREEN ──────────────────────────────────────────
 function PickScreen(props){
   var vehicles = props.vehicles;
-  var meta = useState(null), prevMeta=meta[0], setPrevMeta=meta[1];
-  var lastSel = useState(''), lastId=lastSel[0], setLastId=lastSel[1];
+  var nm = useState(props.workerName||''), name=nm[0], setName=nm[1];
+  var sv = useState(''), selId=sv[0], setSelId=sv[1];
+  var nameErr = useState(false), showNameErr=nameErr[0], setNameErr=nameErr[1];
 
-  function onSelect(id){
-    if(!id) return;
-    setLastId(id);
-    setPrevMeta(null);
-    // load yesterday's info then navigate
-    IDB.get('ps_'+id+'_'+yesterday()).then(function(ps){
-      if(ps){
-        setPrevMeta({odometer:ps.odometer, general_comment:ps.general_comment});
-      } else if(_sb){
-        _sb.from('prestarts').select('odometer,general_comment').eq('vehicle_id',id).eq('date',yesterday()).single().then(function(r){
-          if(r.data) setPrevMeta(r.data);
-        }).catch(function(){});
-      }
-      props.onSelect(id);
-    });
+  function go(){
+    if(!name.trim()){ setNameErr(true); return; }
+    if(!selId) return;
+    props.onSelect(selId, name.trim());
   }
 
-  return h('div', null,
-    h('div', {style:{padding:'32px 16px 16px'}},
-      h('div', {style:{fontSize:11,letterSpacing:'.12em',color:'var(--tx3)',fontWeight:600,marginBottom:10}}, 'SELECT VEHICLE'),
+  return h('div', {style:{padding:'32px 16px 16px'}},
+    // Name field
+    h('div', {style:{marginBottom:20}},
+      h('div', {style:{fontSize:10,letterSpacing:'.12em',color:showNameErr?'var(--fail-tx)':'var(--tx3)',fontWeight:600,marginBottom:8}},
+        showNameErr ? 'YOUR NAME IS REQUIRED' : 'YOUR NAME'
+      ),
+      h('input', {
+        style:{
+          width:'100%', padding:'13px 16px',
+          border:'0.5px solid '+(showNameErr?'var(--fail-bd)':'var(--bd2)'),
+          borderRadius:'var(--r)', background:'var(--bg)',
+          fontSize:17, color:'var(--tx)', outline:'none'
+        },
+        placeholder:'Enter your name...',
+        value:name,
+        onChange:function(e){ setName(e.target.value); setNameErr(false); }
+      })
+    ),
+    // Vehicle dropdown
+    h('div', {style:{marginBottom:20}},
+      h('div', {style:{fontSize:10,letterSpacing:'.12em',color:'var(--tx3)',fontWeight:600,marginBottom:8}}, 'SELECT VEHICLE'),
       h('select', {
         className:'pick-select',
-        value:'',
-        onChange:function(e){ onSelect(e.target.value); }
+        value:selId,
+        onChange:function(e){ setSelId(e.target.value); }
       },
-        h('option', {value:''}, '\u2014 Pick a vehicle to begin \u2014'),
+        h('option', {value:''}, '\u2014 Pick a vehicle \u2014'),
         vehicles.map(function(v){
           return h('option', {key:v.id, value:v.id}, v.id+' \u2014 '+v.make+' '+v.model+(v.year?' ('+v.year+')':''));
         })
       )
     ),
-    vehicles.length === 0 && h('div', {style:{padding:'0 16px',fontSize:13,color:'var(--tx3)'}},
-      'No vehicles set up yet. Ask your supervisor to add vehicles in the dashboard.'
+    // Begin button — only enabled when both fields filled
+    h('button', {
+      disabled: !selId || !name.trim(),
+      onClick: go,
+      style:{
+        width:'100%', padding:'15px',
+        background: selId && name.trim() ? 'var(--accent)' : 'var(--bg2)',
+        color: selId && name.trim() ? '#fff' : 'var(--tx3)',
+        border:'none', borderRadius:'var(--r)',
+        fontSize:13, fontWeight:700, letterSpacing:'.1em',
+        cursor: selId && name.trim() ? 'pointer' : 'default',
+        transition:'background .15s,color .15s'
+      }
+    }, 'BEGIN PRESTART \u2192'),
+    vehicles.length === 0 && h('div', {style:{marginTop:16,fontSize:13,color:'var(--tx3)',textAlign:'center'}},
+      'No vehicles set up yet. Ask your supervisor.'
     )
   );
 }
@@ -363,11 +386,11 @@ function PickScreen(props){
 function FormScreen(props){
   var vehicles = props.vehicles;
   var vehicle = vehicles.find(function(v){ return v.id===props.selId; }) || {};
+  var name = props.workerName;
 
   var cs = useState({}), checks=cs[0], setChecks=cs[1];
   var cm = useState({}), comments=cm[0], setComments=cm[1];
   var od = useState(''), odometer=od[0], setOdometer=od[1];
-  var nm = useState(''), name=nm[0], setName=nm[1];
   var gc = useState(''), genComment=gc[0], setGenComment=gc[1];
   var sv = useState(false), saving=sv[0], setSaving=sv[1];
   var prevIssues = useState([]), prevI=prevIssues[0], setPrevI=prevIssues[1];
@@ -493,10 +516,6 @@ function FormScreen(props){
           h('input', {className:'odo-in', type:'number', inputMode:'numeric', placeholder:'e.g. 45890', value:odometer, onChange:function(e){ setOdometer(e.target.value); }}),
           pk && h('span', {className:'odo-prev'}, 'Yesterday: '+fmtKm(pk))
         )
-      ),
-      h('div', {className:'name-card'},
-        h('div', {className:'odo-lbl'}, 'YOUR NAME'),
-        h('input', {className:'name-in', placeholder:'Enter your name...', value:name, onChange:function(e){ setName(e.target.value); }})
       )
     ),
 
