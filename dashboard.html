@@ -174,6 +174,53 @@ function uid(){ return crypto.randomUUID?crypto.randomUUID():Math.random().toStr
 
 var COLORS=['#BA7517','#0F6E56','#185FA5','#993C1D','#533CC7','#1D6A8E','#7A3B69','#3B5A1F'];
 
+var CHECKLIST=[
+  {id:'a_isolator',    label:'Isolator function and tags',                        cat:'A'},
+  {id:'a_wheel_nuts',  label:'Rims and wheel nut tension',                        cat:'A'},
+  {id:'a_fire_haz',    label:'FIRE HAZARD \u2014 Oil leaks or rags in engine bay',cat:'A'},
+  {id:'a_fire_ext',    label:'Fire extinguishers and AFFF charge',                cat:'A'},
+  {id:'a_steering',    label:'Steering',                                          cat:'A'},
+  {id:'a_svc_brake',   label:'Service brakes',                                    cat:'A'},
+  {id:'a_park_brake',  label:'Park brake',                                        cat:'A'},
+  {id:'a_radio',       label:'Two-way radio (radio check)',                        cat:'A'},
+  {id:'a_seatbelts',   label:'Seat and seat belts',                               cat:'A'},
+  {id:'a_horn',        label:'Horn',                                              cat:'A'},
+  {id:'a_gauges',      label:'Gauges and alarm lights',                           cat:'A'},
+  {id:'a_beacon',      label:'Beacon and LED flag/pole',                          cat:'A'},
+  {id:'a_headlights',  label:'Headlights and work lights',                        cat:'A'},
+  {id:'a_tail_lights', label:'Tail and indicator lights',                         cat:'A'},
+  {id:'a_rev_lights',  label:'Reverse lights and alarm',                          cat:'A'},
+  {id:'a_dash_cam',    label:'Dash camera / reverse camera (if fitted)',          cat:'A'},
+  {id:'a_fwd_cam',     label:'Forward facing camera',                             cat:'A'},
+  {id:'b_engine_oil',  label:'Engine oil level and condition',                    cat:'B'},
+  {id:'b_coolant',     label:'Coolant fluid level',                               cat:'B'},
+  {id:'b_brake_fluid', label:'Brake fluid level',                                 cat:'B'},
+  {id:'b_clutch_oil',  label:'Clutch oil level',                                  cat:'B'},
+  {id:'b_pwr_steer',   label:'Power steering fluid level',                        cat:'B'},
+  {id:'b_battery',     label:'Battery connections and security',                  cat:'B'},
+  {id:'b_belts',       label:'Belt tension',                                      cat:'B'},
+  {id:'b_oil_leaks',   label:'Oil leaks (non-hot zones)',                         cat:'B'},
+  {id:'b_mirrors',     label:'Mirrors',                                           cat:'B'},
+  {id:'b_tyre_depth',  label:'Tyre tread depth and inflation',                    cat:'B'},
+  {id:'b_tyre_damage', label:'Tyre damage',                                       cat:'B'},
+  {id:'b_hand_rails',  label:'Hand rails and steps',                              cat:'B'},
+  {id:'b_aircon',      label:'Air conditioner',                                   cat:'B'},
+  {id:'b_exhaust',     label:'Exhaust pipe',                                      cat:'B'},
+  {id:'b_tray',        label:'Tray headboard / cargo barrier',                   cat:'B'},
+  {id:'b_wheel_brace', label:'Wheel brace and jack',                              cat:'B'},
+  {id:'b_wheel_chocks',label:'Wheel chocks',                                      cat:'B'},
+  {id:'c_cabin',       label:'Cabin is clean',                                    cat:'C'},
+  {id:'c_equip_id',    label:'Equipment ID clean and visible',                    cat:'C'},
+  {id:'c_first_aid',   label:'First aid kit',                                     cat:'C'},
+  {id:'c_fuel',        label:'Fuel level',                                        cat:'C'},
+  {id:'c_washers',     label:'Windscreen washer/wipers',                          cat:'C'},
+  {id:'c_windows',     label:'Windows',                                           cat:'C'},
+  {id:'c_body',        label:'Body and tray damage',                              cat:'C'},
+  {id:'c_spare_tyre',  label:'Spare tyre',                                        cat:'C'},
+  {id:'c_warn_lights', label:'Warning lights',                                    cat:'C'},
+  {id:'c_other',       label:'Other damage',                                      cat:'C'}
+];
+
 // ── IDB (simple, no queue needed — dashboard is online-only) ─
 var IDB=(function(){
   var _db=null;
@@ -443,6 +490,7 @@ function VehicleDetail(props){
   var sv = useState([]), svcs=sv[0], setSvcs=sv[1];
   var ps = useState([]), prestarts=ps[0], setPrestarts=ps[1];
   var ld = useState(true), loading=ld[0], setLoading=ld[1];
+  var sp = useState(null), selectedPs=sp[0], setSelectedPs=sp[1];
   var sf_s = useState(false), showSvcForm=sf_s[0], setShowSvcForm=sf_s[1];
   var sff = useState({date:today(),odometer:'',tech:'',completed:'',outstanding:''}), sf=sff[0], setSf=sff[1];
 
@@ -572,42 +620,102 @@ function VehicleDetail(props){
 
     // ── PRESTARTS TAB ──
     !loading && tab==='prestarts' && h('div',null,
-      // Today's status banner
-      (function(){
-        var todayPs = prestarts.find(function(p){ return p.date===today(); });
-        var fails = todayPs && todayPs.checks ? Object.keys(todayPs.checks).filter(function(k){ return todayPs.checks[k]==='fail'; }).length : 0;
-        return h('div',{style:{
-          background: todayPs ? (todayPs.has_critical_fail ? 'var(--fail-bg)' : fails > 0 ? 'var(--warn-bg)' : 'var(--ok-bg)') : 'var(--bg2)',
-          border: '0.5px solid '+(todayPs ? (todayPs.has_critical_fail ? 'var(--fail-bd)' : fails > 0 ? 'var(--warn-bd)' : 'var(--ok-bd)') : 'var(--bd)'),
-          borderRadius:'var(--r)', padding:'12px 14px', marginBottom:12
-        }},
-          h('div',{style:{fontSize:10,letterSpacing:'.1em',fontWeight:700,marginBottom:4,
-            color: todayPs ? (todayPs.has_critical_fail ? 'var(--fail-tx)' : fails > 0 ? 'var(--warn-tx)' : 'var(--ok-tx)') : 'var(--tx3)'
-          }}, 'TODAY \u2014 '+fmtDate(today())),
-          todayPs
-            ? h('div',{style:{fontSize:13,color: todayPs.has_critical_fail ? 'var(--fail-tx)' : fails > 0 ? 'var(--warn-tx)' : 'var(--ok-tx)'}},
-                '\u2713 Submitted by '+todayPs.submitted_by+' at '+fmtKm(todayPs.odometer)+' km'
-                +(todayPs.has_critical_fail ? ' \u2014 \u26A0 Cat A/B fault' : fails > 0 ? ' \u2014 '+fails+' fault'+(fails>1?'s':'') : ' \u2014 All clear')
-              )
-            : h('div',{style:{fontSize:13,color:'var(--tx3)'}},'\u2014 Not yet submitted')
-        );
-      })(),
-      prestarts.length===0 && h('div',{className:'empty',style:{paddingTop:20}},'No prestarts recorded yet.'),
-      prestarts.map(function(ps){
-        var fails = ps.checks ? Object.keys(ps.checks).filter(function(k){ return ps.checks[k]==='fail'; }) : [];
-        var isToday = ps.date===today();
-        return h('div',{key:ps.id,className:'ps-card',style:isToday?{borderColor:'var(--ok-bd)'}:{}},
-          h('div',{className:'ps-hdr'},
-            h('span',{className:'ps-date'},fmtDate(ps.date)+(isToday?' \u2014 today':'')),
-            h('span',{className:'ps-km'},ps.odometer?fmtKm(ps.odometer)+' km':'')
+
+      // If a prestart is selected, show full detail
+      selectedPs && h('div',null,
+        h('button',{onClick:function(){setSelectedPs(null);},style:{background:'none',border:'none',color:'var(--tx3)',fontSize:12,cursor:'pointer',padding:'0 0 12px',display:'flex',alignItems:'center',gap:5}},'\u2190 Back to list'),
+        h('div',{style:{background:'var(--bg)',border:'0.5px solid var(--bd)',borderRadius:'var(--rl)',overflow:'hidden',marginBottom:10}},
+          h('div',{style:{padding:'12px 14px',borderBottom:'0.5px solid var(--bd)',display:'flex',justifyContent:'space-between',alignItems:'flex-start'}},
+            h('div',null,
+              h('div',{style:{fontSize:15,fontWeight:700}},fmtDate(selectedPs.date)),
+              h('div',{style:{fontSize:12,color:'var(--tx2)',marginTop:2}},'Submitted by '+selectedPs.submitted_by),
+              selectedPs.shift && h('div',{style:{fontSize:12,color:'var(--tx3)'}},'Shift: '+selectedPs.shift+(selectedPs.crew?' \u00B7 Crew: '+selectedPs.crew:''))
+            ),
+            h('div',{style:{textAlign:'right'}},
+              h('div',{style:{fontSize:16,fontWeight:700,color:'var(--accent)'}},selectedPs.odometer?fmtKm(selectedPs.odometer)+' km':''),
+              selectedPs.has_critical_fail && h('div',{style:{fontSize:10,fontWeight:700,color:'var(--fail-tx)',marginTop:4}},'CAT A/B FAULT')
+            )
           ),
-          h('div',{className:'ps-by'},'Submitted by '+ps.submitted_by),
-          ps.general_comment && h('div',{className:'ps-comment'},'\u201C'+ps.general_comment+'\u201D'),
-          fails.length>0 && h('div',{className:'ps-fail'},
-            '\u26A0 '+fails.length+' fault'+(fails.length>1?'s':'')+' recorded'+(ps.has_critical_fail?' \u2014 Cat A/B':'')
-          )
-        );
-      })
+          selectedPs.general_comment && h('div',{style:{padding:'10px 14px',borderBottom:'0.5px solid var(--bd)',fontSize:13,color:'var(--tx2)',fontStyle:'italic'}},'\u201C'+selectedPs.general_comment+'\u201D'),
+          // Checklist results grouped by category
+          ['A','B','C'].map(function(cat){
+            var catItems = CHECKLIST.filter(function(i){ return i.cat===cat; });
+            var catLabels = {A:'Category A \u2014 Walk-around',B:'Category B \u2014 Functional',C:'Category C \u2014 General'};
+            var catColors = {A:'var(--fail-tx)',B:'var(--warn-tx)',C:'var(--ok-tx)'};
+            var catBg = {A:'var(--fail-bg)',B:'var(--warn-bg)',C:'var(--ok-bg)'};
+            var fails = catItems.filter(function(i){ return selectedPs.checks&&selectedPs.checks[i.id]==='fail'; });
+            return h('div',{key:cat,style:{borderBottom:'0.5px solid var(--bd)'}},
+              h('div',{style:{padding:'8px 14px',background:catBg[cat],display:'flex',justifyContent:'space-between',alignItems:'center'}},
+                h('span',{style:{fontSize:10,fontWeight:700,letterSpacing:'.08em',color:catColors[cat]}},catLabels[cat]),
+                fails.length>0
+                  ? h('span',{style:{fontSize:10,fontWeight:700,color:catColors[cat]}},fails.length+' FAULT'+(fails.length>1?'S':''))
+                  : h('span',{style:{fontSize:10,color:'var(--ok-tx)'}},'ALL CLEAR')
+              ),
+              catItems.map(function(item){
+                var val = selectedPs.checks ? selectedPs.checks[item.id] : null;
+                var comment = selectedPs.comments ? selectedPs.comments[item.id] : null;
+                if(!val) return null;
+                var rowBg = val==='fail'?'var(--fail-bg)':val==='na'?'var(--bg2)':'transparent';
+                var icon = val==='pass'?'\u2713':val==='fail'?'\u2717':'N/A';
+                var iconColor = val==='pass'?'var(--ok-tx)':val==='fail'?'var(--fail-tx)':'var(--tx3)';
+                return h('div',{key:item.id,style:{padding:'7px 14px',background:rowBg,borderTop:'0.5px solid var(--bd)',display:'flex',gap:10,alignItems:'flex-start'}},
+                  h('span',{style:{fontSize:13,fontWeight:700,color:iconColor,flexShrink:0,width:28}},icon),
+                  h('div',null,
+                    h('div',{style:{fontSize:13,color:val==='fail'?'var(--fail-tx)':'var(--tx)'}},item.label),
+                    comment && h('div',{style:{fontSize:12,color:'var(--fail-tx)',marginTop:2}},comment)
+                  )
+                );
+              })
+            );
+          })
+        )
+      ),
+
+      // Prestart list
+      !selectedPs && h('div',null,
+        // Today's status banner
+        (function(){
+          var todayPs = prestarts.find(function(p){ return p.date===today(); });
+          var fails = todayPs && todayPs.checks ? Object.keys(todayPs.checks).filter(function(k){ return todayPs.checks[k]==='fail'; }).length : 0;
+          return h('div',{style:{
+            background: todayPs ? (todayPs.has_critical_fail ? 'var(--fail-bg)' : fails > 0 ? 'var(--warn-bg)' : 'var(--ok-bg)') : 'var(--bg2)',
+            border: '0.5px solid '+(todayPs ? (todayPs.has_critical_fail ? 'var(--fail-bd)' : fails > 0 ? 'var(--warn-bd)' : 'var(--ok-bd)') : 'var(--bd)'),
+            borderRadius:'var(--r)', padding:'12px 14px', marginBottom:12
+          }},
+            h('div',{style:{fontSize:10,letterSpacing:'.1em',fontWeight:700,marginBottom:4,
+              color: todayPs ? (todayPs.has_critical_fail ? 'var(--fail-tx)' : fails > 0 ? 'var(--warn-tx)' : 'var(--ok-tx)') : 'var(--tx3)'
+            }}, 'TODAY \u2014 '+fmtDate(today())),
+            todayPs
+              ? h('div',{style:{fontSize:13,color: todayPs.has_critical_fail ? 'var(--fail-tx)' : fails > 0 ? 'var(--warn-tx)' : 'var(--ok-tx)'}},
+                  '\u2713 Submitted by '+todayPs.submitted_by+' at '+fmtKm(todayPs.odometer)+' km'
+                  +(todayPs.has_critical_fail ? ' \u2014 \u26A0 Cat A/B fault' : fails > 0 ? ' \u2014 '+fails+' fault'+(fails>1?'s':'') : ' \u2014 All clear')
+                )
+              : h('div',{style:{fontSize:13,color:'var(--tx3)'}},'\u2014 Not yet submitted')
+          );
+        })(),
+        prestarts.length===0 && h('div',{className:'empty',style:{paddingTop:20}},'No prestarts recorded yet.'),
+        prestarts.map(function(ps2){
+          var fails = ps2.checks ? Object.keys(ps2.checks).filter(function(k){ return ps2.checks[k]==='fail'; }) : [];
+          var isToday = ps2.date===today();
+          return h('div',{key:ps2.id,className:'ps-card',
+            style:{borderColor:isToday?'var(--ok-bd)':'var(--bd)',cursor:'pointer'},
+            onClick:function(){ setSelectedPs(ps2); }
+          },
+            h('div',{className:'ps-hdr'},
+              h('span',{className:'ps-date'},fmtDate(ps2.date)+(isToday?' \u2014 today':'')),
+              h('span',{className:'ps-km'},ps2.odometer?fmtKm(ps2.odometer)+' km':'')
+            ),
+            h('div',{className:'ps-by'},'Submitted by '+ps2.submitted_by),
+            ps2.general_comment && h('div',{className:'ps-comment'},'\u201C'+ps2.general_comment+'\u201D'),
+            h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:4}},
+              fails.length>0
+                ? h('div',{className:'ps-fail'},'\u26A0 '+fails.length+' fault'+(fails.length>1?'s':'')+' recorded'+(ps2.has_critical_fail?' \u2014 Cat A/B':''))
+                : h('div',{style:{fontSize:11,color:'var(--ok-tx)'}},'All clear'),
+              h('span',{style:{fontSize:11,color:'var(--tx3)'}}, 'View \u2192')
+            )
+          );
+        })
+      )
     ),
 
     // ── ISSUES TAB ──
