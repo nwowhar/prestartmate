@@ -1,4 +1,4 @@
-const CACHE = 'prestart-v4';
+const CACHE = 'prestart-v5';
 
 // App shell — local files
 const LOCAL_ASSETS = [
