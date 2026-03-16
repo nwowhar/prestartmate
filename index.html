@@ -212,7 +212,13 @@ document.addEventListener('visibilitychange', function(){ if(document.visibility
 
 // ── HELPERS ──────────────────────────────────────────────
 function today(){ var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
-function yesterday(){ var d=new Date(); d.setDate(d.getDate()-1); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function perthDate(offsetDays){
+  var d=new Date(new Date().getTime() + 8*60*60*1000);
+  if(offsetDays) d=new Date(d.getTime()+offsetDays*86400000);
+  return d.toISOString().slice(0,10);
+}
+function today(){ return perthDate(0); }
+function yesterday(){ return perthDate(-1); }
 function fmtDate(d){ try{ return new Date(d+'T12:00:00').toLocaleDateString('en-AU',{weekday:'short',day:'2-digit',month:'short',year:'numeric'}); }catch(e){ return d; } }
 function fmtKm(n){ return Number(n).toLocaleString('en-AU'); }
 function uid(){ return crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2)+Date.now().toString(36); }
@@ -393,6 +399,9 @@ function PickScreen(props){
     }, 'BEGIN PRESTART \u2192'),
     vehicles.length === 0 && h('div', {style:{marginTop:16,fontSize:13,color:'var(--tx3)',textAlign:'center'}},
       'No vehicles set up yet. Ask your supervisor.'
+    ),
+    h('div', {style:{marginTop:32,textAlign:'center'}},
+      h('a', {href:'/dashboard.html', style:{fontSize:11,color:'var(--tx3)',textDecoration:'none',letterSpacing:'.06em'}}, 'Supervisor dashboard \u2192')
     )
   );
 }
