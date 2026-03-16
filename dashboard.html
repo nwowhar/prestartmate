@@ -627,6 +627,8 @@ function VehicleDetail(props){
       setLoading(false);
     }).catch(function(e){ alert('Refresh failed: '+e.message); setLoading(false); });
   }
+
+  function resolve(id){
     _sb.from('issues').update({resolved:true,resolved_date:today()}).eq('id',id).then(function(){
       setIssues(issues.map(function(i){ return i.id===id?Object.assign({},i,{resolved:true,resolved_date:today()}):i; }));
     });
@@ -857,6 +859,7 @@ function VehicleDetail(props){
     )
   );
 }
+} // end VehicleDetail
 
 // ── SVG CHART ────────────────────────────────────────────
 function SvgChart(props){
