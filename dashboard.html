@@ -613,7 +613,28 @@ function VehicleDetail(props){
     window.location.href='mailto:'+ALERT_EMAIL+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
   }
 
-  function resolve(id){
+  function deletePs(ps2){
+    if(!confirm('Delete prestart for '+fmtDate(ps2.date)+' by '+ps2.submitted_by+'? This cannot be undone.')) return;
+    _sb.from('prestarts').delete().eq('id',ps2.id).then(function(){
+      setPrestarts(prestarts.filter(function(p){ return p.id!==ps2.id; }));
+    }).catch(function(e){ alert('Delete failed: '+e.message); });
+  }
+
+  function forceRefresh(){
+    setLoading(true);
+    Promise.all([
+      _sb.from('issues').select('*').eq('vehicle_id',vehicle.id).order('date',{ascending:false}),
+      _sb.from('km_history').select('*').eq('vehicle_id',vehicle.id).order('date',{ascending:true}),
+      _sb.from('service_records').select('*').eq('vehicle_id',vehicle.id).order('date',{ascending:false}),
+      _sb.from('prestarts').select('*').eq('vehicle_id',vehicle.id).order('date',{ascending:false}).limit(90)
+    ]).then(function(results){
+      if(results[0].data && results[0].data.length>0){ setIssues(results[0].data); IDB.set('issues_'+vehicle.id,results[0].data); }
+      if(results[1].data && results[1].data.length>0){ setKmHist(results[1].data); IDB.set('km_'+vehicle.id,results[1].data); }
+      if(results[2].data && results[2].data.length>0){ setSvcs(results[2].data); IDB.set('svcs_'+vehicle.id,results[2].data); }
+      if(results[3].data){ setPrestarts(results[3].data); results[3].data.forEach(function(p){ IDB.set('ps_'+p.vehicle_id+'_'+p.date,p); }); }
+      setLoading(false);
+    }).catch(function(e){ alert('Refresh failed: '+e.message); setLoading(false); });
+  }
     _sb.from('issues').update({resolved:true,resolved_date:today()}).eq('id',id).then(function(){
       setIssues(issues.map(function(i){ return i.id===id?Object.assign({},i,{resolved:true,resolved_date:today()}):i; }));
     });
@@ -653,14 +674,20 @@ function VehicleDetail(props){
           : h('span',{style:{color:to<=500?'var(--warn-tx)':'var(--tx2)'}},h('strong',null,fmtKm(to)),' km to next service')
       )
     ),
-    h('div',{className:'tabs'},
-      ['prestarts','issues','km','services'].map(function(t){
-        var labels={prestarts:'Prestarts',issues:'Issues',km:'KM History',services:'Services'};
-        return h('button',{key:t,className:'tbtn'+(tab===t?' on':''),onClick:function(){setTab(t);}},
-          labels[t],
-          t==='issues'&&open.length>0&&h('span',{className:'tb-badge'},open.length)
-        );
-      })
+    h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}},
+      h('div',{className:'tabs',style:{marginBottom:0}},
+        ['prestarts','issues','km','services'].map(function(t){
+          var labels={prestarts:'Prestarts',issues:'Issues',km:'KM History',services:'Services'};
+          return h('button',{key:t,className:'tbtn'+(tab===t?' on':''),onClick:function(){setTab(t);}},
+            labels[t],
+            t==='issues'&&open.length>0&&h('span',{className:'tb-badge'},open.length)
+          );
+        })
+      ),
+      h('button',{
+        onClick:forceRefresh,
+        style:{background:'none',border:'0.5px solid var(--bd)',borderRadius:'var(--r)',padding:'6px 10px',fontSize:11,color:'var(--tx3)',cursor:'pointer',flexShrink:0}
+      },'\u21BB Refresh')
     ),
     loading && h('div',{className:'empty'},'Loading...'),
 
@@ -731,7 +758,7 @@ function VehicleDetail(props){
           }},
             h('div',{style:{fontSize:10,letterSpacing:'.1em',fontWeight:700,marginBottom:4,
               color: todayPs ? (todayPs.has_critical_fail ? 'var(--fail-tx)' : fails > 0 ? 'var(--warn-tx)' : 'var(--ok-tx)') : 'var(--tx3)'
-            }}, 'TODAY \u2014 '+fmtDate(today())),
+            }, 'TODAY \u2014 '+fmtDate(today())),
             todayPs
               ? h('div',{style:{fontSize:13,color: todayPs.has_critical_fail ? 'var(--fail-tx)' : fails > 0 ? 'var(--warn-tx)' : 'var(--ok-tx)'}},
                   '\u2713 Submitted by '+todayPs.submitted_by+' at '+fmtKm(todayPs.odometer)+' km'
@@ -745,20 +772,27 @@ function VehicleDetail(props){
           var fails = ps2.checks ? Object.keys(ps2.checks).filter(function(k){ return ps2.checks[k]==='fail'; }) : [];
           var isToday = ps2.date===today();
           return h('div',{key:ps2.id,className:'ps-card',
-            style:{borderColor:isToday?'var(--ok-bd)':'var(--bd)',cursor:'pointer'},
-            onClick:function(){ setSelectedPs(ps2); }
+            style:{borderColor:isToday?'var(--ok-bd)':'var(--bd)'}
           },
-            h('div',{className:'ps-hdr'},
-              h('span',{className:'ps-date'},fmtDate(ps2.date)+(isToday?' \u2014 today':'')),
-              h('span',{className:'ps-km'},ps2.odometer?fmtKm(ps2.odometer)+' km':'')
-            ),
-            h('div',{className:'ps-by'},'Submitted by '+ps2.submitted_by),
-            ps2.general_comment && h('div',{className:'ps-comment'},'\u201C'+ps2.general_comment+'\u201D'),
-            h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:4}},
-              fails.length>0
-                ? h('div',{className:'ps-fail'},'\u26A0 '+fails.length+' fault'+(fails.length>1?'s':'')+' recorded'+(ps2.has_critical_fail?' \u2014 Cat A/B':''))
-                : h('div',{style:{fontSize:11,color:'var(--ok-tx)'}},'All clear'),
-              h('span',{style:{fontSize:11,color:'var(--tx3)'}}, 'View \u2192')
+            h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-start'},onClick:function(){ setSelectedPs(ps2); }},
+              h('div',{style:{cursor:'pointer',flex:1}},
+                h('div',{className:'ps-hdr'},
+                  h('span',{className:'ps-date'},fmtDate(ps2.date)+(isToday?' \u2014 today':'')),
+                  h('span',{className:'ps-km'},ps2.odometer?fmtKm(ps2.odometer)+' km':'')
+                ),
+                h('div',{className:'ps-by'},'Submitted by '+ps2.submitted_by),
+                ps2.general_comment && h('div',{className:'ps-comment'},'\u201C'+ps2.general_comment+'\u201D'),
+                h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:4}},
+                  fails.length>0
+                    ? h('div',{className:'ps-fail'},'\u26A0 '+fails.length+' fault'+(fails.length>1?'s':'')+' recorded'+(ps2.has_critical_fail?' \u2014 Cat A/B':''))
+                    : h('div',{style:{fontSize:11,color:'var(--ok-tx)'}},'All clear'),
+                  h('span',{style:{fontSize:11,color:'var(--tx3)'}}, 'View \u2192')
+                )
+              ),
+              h('button',{
+                onClick:function(e){ e.stopPropagation(); deletePs(ps2); },
+                style:{background:'none',border:'none',color:'var(--tx3)',fontSize:16,cursor:'pointer',padding:'0 0 0 10px',flexShrink:0,lineHeight:1}
+              },'\u2715')
             )
           );
         })
@@ -861,9 +895,7 @@ function SvgChart(props){
 }
 
 // ── MOUNT ─────────────────────────────────────────────────
-// mountApp() is called by the PIN gate above after correct PIN entry
-// It needs to close over App which is defined inside mountApp
-// The PIN gate script runs on load automatically via the IIFE above
+// mountApp() is called by the PIN gate after correct PIN entry
 </script>
 </body>
 </html>
