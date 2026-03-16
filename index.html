@@ -175,22 +175,26 @@ var IDB = (function(){
 var pendingCount = 0;
 var onPendingChange = null;
 function syncFlush(){
-  if(!navigator.onLine || !_sb) return;
+  if(!navigator.onLine || !_sb){ return; }
   IDB.qall().then(function(queue){
+    if(queue.length === 0) return;
     var chain = Promise.resolve();
     queue.forEach(function(item){
       chain = chain.then(function(){
         return IDB.get(item.idbKey).then(function(data){
           if(!data) return IDB.qdel(item.qid);
           var payload = Array.isArray(data) ? data : [data];
-          return _sb.from(item.table).upsert(payload,{onConflict:item.conflict||'id'}).then(function(r){
+          // Use correct conflict target per table
+          var conflict = item.conflict || 'id';
+          return _sb.from(item.table).upsert(payload, {onConflict: conflict, ignoreDuplicates: false}).then(function(r){
             if(r.error){
-              console.error('Supabase upsert error ('+item.table+'):', r.error.message, r.error);
-              throw r.error;
+              console.error('Sync error ('+item.table+'):', r.error.message);
+              // Don't throw — mark as failed but keep in queue to retry
+              return;
             }
             return IDB.qdel(item.qid);
           });
-        }).catch(function(e){ console.error('sync fail ('+item.table+'):', e.message||e); });
+        }).catch(function(e){ console.error('Sync catch ('+item.table+'):', e.message||e); });
       });
     });
     return chain;
@@ -202,13 +206,15 @@ function syncFlush(){
   });
 }
 function queueSync(table, idbKey, conflict){
-  return IDB.qadd({table:table,idbKey:idbKey,conflict:conflict}).then(function(){
+  return IDB.qadd({table:table, idbKey:idbKey, conflict:conflict}).then(function(){
     IDB.qall().then(function(q){ pendingCount=q.length; if(onPendingChange) onPendingChange(pendingCount); });
-    if(navigator.onLine) syncFlush();
+    if(navigator.onLine) setTimeout(syncFlush, 500);
   });
 }
-window.addEventListener('online', syncFlush);
-document.addEventListener('visibilitychange', function(){ if(document.visibilityState==='visible') syncFlush(); });
+window.addEventListener('online', function(){ setTimeout(syncFlush, 1000); });
+document.addEventListener('visibilitychange', function(){ if(document.visibilityState==='visible' && navigator.onLine) setTimeout(syncFlush, 500); });
+// Retry sync every 30s while app is open
+setInterval(function(){ if(navigator.onLine && pendingCount > 0) syncFlush(); }, 30000);
 
 // ── HELPERS ──────────────────────────────────────────────
 function today(){ var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
@@ -286,18 +292,25 @@ function App(){
   useEffect(function(){
     onPendingChange = setPending;
     _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    _sb.from('vehicles').select('*').order('id').then(function(r){
-      if(r.error) console.error('Supabase error:', r.error.message, r.error.code);
-      if(r.data && r.data.length > 0){
-        IDB.set('vehicles', r.data).then(function(){ setVehicles(r.data); });
-      } else {
-        IDB.get('vehicles').then(function(v){ if(v) setVehicles(v); });
+
+    // Always load from IDB first — instant, works offline
+    IDB.get('vehicles').then(function(cached){
+      if(cached && cached.length > 0){
+        setVehicles(cached);
+        setScreen('pick');
       }
-      setScreen('pick');
-    }).catch(function(e){
-      console.error('Supabase fetch failed:', e);
-      IDB.get('vehicles').then(function(v){ if(v) setVehicles(v); setScreen('pick'); });
-    });
+      // Then try Supabase in background to freshen the list
+      if(!navigator.onLine){ if(!cached||!cached.length) setScreen('pick'); return; }
+      _sb.from('vehicles').select('*').order('id').then(function(r){
+        if(r.data && r.data.length > 0){
+          IDB.set('vehicles', r.data);
+          setVehicles(r.data);
+        }
+        setScreen('pick');
+        syncFlush();
+      }).catch(function(){ setScreen('pick'); });
+    }).catch(function(){ setScreen('pick'); });
+
     window.addEventListener('online',  function(){ setOnline(true);  syncFlush(); });
     window.addEventListener('offline', function(){ setOnline(false); });
   }, []);
@@ -306,7 +319,8 @@ function App(){
     return h('div', {style:{display:'flex',alignItems:'center',justifyContent:'center',height:'80vh',color:'var(--tx3)',fontSize:13}}, 'Loading...');
   }
 
-  var syncCls = !online ? 'sync-dot s-off' : pending > 0 ? 'sync-dot s-pend' : 'sync-dot s-ok';
+  var syncLabel = !online ? 'Offline' : pending > 0 ? pending+' unsynced' : 'Synced';
+  var syncColor = !online ? 'var(--tx3)' : pending > 0 ? 'var(--warn-tx)' : '#2da866';
 
   return h('div', null,
     h('div', {className:'hdr'},
@@ -326,11 +340,13 @@ function App(){
       ),
       h('div', {className:'hdr-right'},
         workerName && screen !== 'pick' && h('span', {style:{fontSize:11,color:'var(--tx3)'}}, workerName),
-        !online && h('span', {style:{fontSize:11,color:'var(--warn-tx)'}}, 'offline'),
-        h('span', {className:syncCls, title: pending > 0 ? pending+' pending' : 'synced'})
+        h('span', {
+          onClick: online && pending > 0 ? syncFlush : undefined,
+          style:{fontSize:10,color:syncColor,letterSpacing:'.06em',cursor: pending>0?'pointer':'default',fontWeight:pending>0?600:400}
+        }, syncLabel + (pending > 0 ? ' \u21BB' : ''))
       )
     ),
-    !online && h('div', {className:'offline-bar'}, 'No connection \u2014 prestart will save and sync when back online'),
+    !online && h('div', {className:'offline-bar'}, 'No connection \u2014 prestart will save and sync automatically when reconnected'),
     screen === 'pick'    && h(PickScreen,    {vehicles:vehicles, workerName:workerName, setWorkerName:setWorkerName, onSelect:function(id,name){ setSelId(id); setWorkerName(name); setScreen('form'); }}),
     screen === 'form'    && h(FormScreen,    {vehicles:vehicles, selId:selId, workerName:workerName, onDone:function(){ setScreen('done'); }, onAlready:function(){ setScreen('already'); }}),
     screen === 'done'    && h(DoneScreen,    {selId:selId, onAnother:function(){ setSelId(''); setWorkerName(''); setScreen('pick'); }}),
