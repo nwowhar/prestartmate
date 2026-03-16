@@ -148,9 +148,10 @@ button,input,textarea,select{font-family:inherit;font-size:14px;color:var(--tx)}
   <div style="font-size:11px;letter-spacing:.14em;color:var(--tx3);font-weight:600">FLEET MANAGEMENT</div>
   <div style="font-size:28px;font-weight:700">Supervisor Dashboard</div>
   <div style="font-size:13px;color:var(--tx2)">Enter your PIN to continue</div>
-  <input id="pin-input" class="pin-in" type="password" inputmode="numeric" maxlength="6" placeholder="••••" autofocus>
+  <input id="pin-input" class="pin-in" type="password" inputmode="numeric" maxlength="6" placeholder="••••"
+    onkeydown="if(event.key==='Enter') window.tryPin()">
   <div id="pin-err" style="font-size:12px;color:var(--fail-tx);min-height:16px"></div>
-  <button id="pin-btn" class="pin-btn">UNLOCK</button>
+  <button class="pin-btn" onclick="window.tryPin()">UNLOCK</button>
   <a href="/" class="pin-back">← Back to prestart</a>
 </div>
 <div id="root" style="display:none"></div>
@@ -165,7 +166,6 @@ var SUPERVISOR_PIN = '1111';
 var ALERT_EMAIL = 'supervisor@yourcompany.com.au'; // ← change this to your email
 
 var _sb = null;
-var useState=React.useState, useEffect=React.useEffect, h=React.createElement;
 
 function today(){ return new Date(new Date().getTime()+8*60*60*1000).toISOString().slice(0,10); }
 function fmtDate(d){ try{ return new Date(d+'T12:00:00').toLocaleDateString('en-AU',{day:'2-digit',month:'short',year:'numeric'}); }catch(e){ return d; } }
@@ -230,32 +230,24 @@ var IDB=(function(){
   return{get:get,set:set};
 })();
 
-// ── PIN GATE — runs after page fully loaded ────────────────
-window.addEventListener('load', function(){
-  var overlay = document.getElementById('pin-overlay');
-  var root    = document.getElementById('root');
-  var input   = document.getElementById('pin-input');
-  var errEl   = document.getElementById('pin-err');
-  var btn     = document.getElementById('pin-btn');
-
-  function attempt(){
-    if(input.value === SUPERVISOR_PIN){
-      overlay.classList.add('hidden');
-      root.style.display = '';
-      mountApp();
-    } else {
-      errEl.textContent = 'Incorrect PIN';
-      input.value = '';
-      input.focus();
-      setTimeout(function(){ errEl.textContent=''; }, 2000);
-    }
+window.tryPin = function(){
+  var input = document.getElementById('pin-input');
+  var errEl = document.getElementById('pin-err');
+  if(input.value === SUPERVISOR_PIN){
+    document.getElementById('pin-overlay').style.display = 'none';
+    document.getElementById('root').style.display = '';
+    mountApp();
+  } else {
+    errEl.textContent = 'Incorrect PIN';
+    input.value = '';
+    input.focus();
+    setTimeout(function(){ errEl.textContent = ''; }, 2000);
   }
-  btn.addEventListener('click', attempt);
-  input.addEventListener('keydown', function(e){ if(e.key==='Enter') attempt(); });
-});
+};
 
 // ── APP (only mounts after PIN is correct) ────────────────
 function mountApp(){
+  var useState=React.useState, useEffect=React.useEffect, h=React.createElement;
   _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
   function App(){
