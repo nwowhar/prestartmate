@@ -230,8 +230,8 @@ var IDB=(function(){
   return{get:get,set:set};
 })();
 
-// ── PIN GATE — pure JS, runs before React ────────────────
-(function(){
+// ── PIN GATE — runs after page fully loaded ────────────────
+window.addEventListener('load', function(){
   var overlay = document.getElementById('pin-overlay');
   var root    = document.getElementById('root');
   var input   = document.getElementById('pin-input');
@@ -252,7 +252,7 @@ var IDB=(function(){
   }
   btn.addEventListener('click', attempt);
   input.addEventListener('keydown', function(e){ if(e.key==='Enter') attempt(); });
-})();
+});
 
 // ── APP (only mounts after PIN is correct) ────────────────
 function mountApp(){
