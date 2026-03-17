@@ -792,11 +792,6 @@ window.addEventListener('load', function() {
 
       // ISSUES TAB
       !loading && tab==='issues' && h('div',null,
-        // Report button
-        (open.length>0 || resolved.length>0) && h('button',{
-          onClick:function(){ generateReport(vehicle, open, resolved, prestarts, lastKm, to); },
-          style:{width:'100%',padding:'11px',background:'transparent',border:'0.5px solid var(--bd2)',borderRadius:'var(--r)',color:'var(--accent)',fontSize:11,letterSpacing:'.1em',fontWeight:700,cursor:'pointer',marginBottom:12}
-        },'\u21E9 Generate Service Report (PDF)'),
         !open.length && h('div',{className:'empty'},'No outstanding issues'),
         open.map(function(iss){
           return h('div',{key:iss.id, className:'issue-card'},
@@ -849,6 +844,10 @@ window.addEventListener('load', function() {
 
       // SERVICES TAB
       !loading && tab==='services' && h('div',null,
+        h('button',{
+          onClick:function(){ generateReport(vehicle, open, resolved, prestarts, lastKm, to); },
+          style:{width:'100%',padding:'11px',background:'var(--accent)',color:'#fff',border:'none',borderRadius:'var(--r)',fontSize:11,letterSpacing:'.1em',fontWeight:700,cursor:'pointer',marginBottom:12}
+        },'\u21E9 Generate Service Report (PDF)'),
         h('button',{className:'add-btn', onClick:function(){ setShowSvcForm(!showSvcForm); }}, showSvcForm?'CANCEL':'+ LOG SERVICE RECORD'),
         showSvcForm && h('div',{style:{background:'var(--bg)',border:'0.5px solid var(--bd)',borderRadius:'var(--rl)',padding:14,marginBottom:10}},
           h('div',{className:'field'},h('label',{className:'flabel'},'DATE'),h('input',{className:'finput',type:'date',value:sf.date,onChange:function(e){setSf(Object.assign({},sf,{date:e.target.value}));}})),
