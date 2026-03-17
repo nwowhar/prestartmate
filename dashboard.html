@@ -792,6 +792,11 @@ window.addEventListener('load', function() {
 
       // ISSUES TAB
       !loading && tab==='issues' && h('div',null,
+        // Report button
+        (open.length>0 || resolved.length>0) && h('button',{
+          onClick:function(){ generateReport(vehicle, open, resolved, prestarts, lastKm, to); },
+          style:{width:'100%',padding:'11px',background:'transparent',border:'0.5px solid var(--bd2)',borderRadius:'var(--r)',color:'var(--accent)',fontSize:11,letterSpacing:'.1em',fontWeight:700,cursor:'pointer',marginBottom:12}
+        },'\u21E9 Generate Service Report (PDF)'),
         !open.length && h('div',{className:'empty'},'No outstanding issues'),
         open.map(function(iss){
           return h('div',{key:iss.id, className:'issue-card'},
@@ -864,6 +869,104 @@ window.addEventListener('load', function() {
         })
       )
     );
+  }
+
+  // ── REPORT GENERATOR ───────────────────────────────────
+  function generateReport(vehicle, open, resolved, prestarts, lastKm, to) {
+    var now = fmtDate(todayPerth());
+    var dueAt = fmtKm((vehicle.last_service_km||0) + (vehicle.service_interval_km||5000));
+    var svcStatus = to<=0
+      ? '<span style="color:#c94520;font-weight:700">OVERDUE by '+fmtKm(Math.abs(to))+' km</span>'
+      : fmtKm(to)+' km remaining (due at '+dueAt+' km)';
+
+    function issRow(iss, resolved) {
+      var bg = resolved ? '#f9f9f9' : '#fff8f8';
+      var border = resolved ? '#ddd' : '#e8a0a0';
+      var statusBadge = resolved
+        ? '<span style="background:#e4f4ec;color:#0c5430;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600">RESOLVED '+fmtDate(iss.resolved_date)+'</span>'
+        : '<span style="background:#fbeaea;color:#5a1010;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600">OUTSTANDING</span>';
+      return '<tr style="background:'+bg+';border-left:3px solid '+border+'">'
+        +'<td style="padding:10px 12px;font-size:13px;font-weight:600;width:80px">'+iss.category+'</td>'
+        +'<td style="padding:10px 12px;font-size:13px">'
+          +iss.label
+          +(iss.description ? '<br><span style="color:#666;font-size:12px;font-style:italic">'+iss.description+'</span>' : '')
+          +'<br><span style="color:#999;font-size:11px">Reported by '+(iss.reported_by||'unknown')+' &middot; '+fmtDate(iss.date)+'</span>'
+        +'</td>'
+        +'<td style="padding:10px 12px;text-align:right;white-space:nowrap">'+statusBadge+'</td>'
+        +'</tr>';
+    }
+
+    // Recent prestart summary - last 7 days
+    var recentPs = prestarts.slice(0,7);
+    var psRows = recentPs.map(function(ps) {
+      var fails = ps.checks ? Object.keys(ps.checks).filter(function(k){ return ps.checks[k]==='fail'; }).length : 0;
+      var statusColor = ps.has_critical_fail ? '#c94520' : fails>0 ? '#854F0B' : '#0c5430';
+      var statusText  = ps.has_critical_fail ? 'Cat A/B fault' : fails>0 ? fails+' fault'+(fails>1?'s':'') : 'All clear';
+      return '<tr>'
+        +'<td style="padding:8px 12px;font-size:13px">'+fmtDate(ps.date)+'</td>'
+        +'<td style="padding:8px 12px;font-size:13px">'+ps.submitted_by+'</td>'
+        +'<td style="padding:8px 12px;font-size:13px">'+(ps.odometer?fmtKm(ps.odometer)+' km':'&mdash;')+'</td>'
+        +'<td style="padding:8px 12px;font-size:13px;color:'+statusColor+';font-weight:600">'+statusText+'</td>'
+        +(ps.general_comment?'<td style="padding:8px 12px;font-size:12px;color:#666;font-style:italic">'+ps.general_comment+'</td>':'<td></td>')
+        +'</tr>';
+    }).join('');
+
+    var html = '<!DOCTYPE html><html><head><meta charset="UTF-8">'
+      +'<title>Service Report &mdash; '+vehicle.id+'</title>'
+      +'<style>'
+      +'body{font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;color:#1a1a18;margin:0;padding:32px;max-width:800px}'
+      +'h1{font-size:24px;font-weight:700;margin:0 0 4px}h2{font-size:16px;font-weight:600;margin:24px 0 10px;color:#444}'
+      +'table{width:100%;border-collapse:collapse;margin-bottom:8px}'
+      +'th{text-align:left;padding:8px 12px;font-size:11px;letter-spacing:.08em;color:#999;font-weight:600;border-bottom:1px solid #eee}'
+      +'td{border-bottom:1px solid #f0f0f0;vertical-align:top}'
+      +'.meta{display:flex;gap:24px;margin:12px 0 24px;flex-wrap:wrap}'
+      +'.meta-item{font-size:13px;color:#666}.meta-item strong{color:#1a1a18;display:block;font-size:15px}'
+      +'.header-bar{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}'
+      +'.veh-id{font-size:32px;font-weight:700;color:#BA7517}'
+      +'.report-date{font-size:13px;color:#999;text-align:right}'
+      +'.divider{border:none;border-top:1px solid #eee;margin:20px 0}'
+      +'@media print{body{padding:16px}button{display:none!important}}'
+      +'</style></head><body>'
+      // Header
+      +'<div class="header-bar">'
+      +'<div><div class="veh-id">'+vehicle.id+'</div><div style="font-size:15px;color:#666">'+vehicle.year+' '+vehicle.make+' '+vehicle.model+'</div></div>'
+      +'<div class="report-date">SERVICE REPORT<br>Generated: '+now+'</div>'
+      +'</div>'
+      // Key stats
+      +'<div class="meta">'
+      +'<div class="meta-item"><strong>'+fmtKm(lastKm)+' km</strong>Current odometer</div>'
+      +'<div class="meta-item"><strong>'+fmtDate(vehicle.last_service_date)+'</strong>Last service</div>'
+      +'<div class="meta-item"><strong>'+fmtKm(vehicle.last_service_km)+' km</strong>Odometer at last service</div>'
+      +'<div class="meta-item"><strong>'+svcStatus+'</strong>Service status</div>'
+      +'</div>'
+      +'<hr class="divider">'
+      // Outstanding issues
+      +'<h2>Outstanding Issues ('+open.length+')</h2>'
+      +(open.length===0
+        ? '<p style="color:#999;font-size:13px">No outstanding issues recorded.</p>'
+        : '<table><thead><tr><th>Category</th><th>Issue</th><th>Status</th></tr></thead><tbody>'+open.map(function(i){ return issRow(i,false); }).join('')+'</tbody></table>'
+      )
+      // Resolved issues
+      +(resolved.length>0
+        ? '<h2>Resolved Issues ('+resolved.length+')</h2>'
+          +'<table><thead><tr><th>Category</th><th>Issue</th><th>Status</th></tr></thead><tbody>'+resolved.map(function(i){ return issRow(i,true); }).join('')+'</tbody></table>'
+        : ''
+      )
+      +'<hr class="divider">'
+      // Recent prestarts
+      +'<h2>Recent Prestarts (last 7 days)</h2>'
+      +(recentPs.length===0
+        ? '<p style="color:#999;font-size:13px">No recent prestarts recorded.</p>'
+        : '<table><thead><tr><th>Date</th><th>Submitted by</th><th>Odometer</th><th>Result</th><th>General comment</th></tr></thead><tbody>'+psRows+'</tbody></table>'
+      )
+      +'<hr class="divider">'
+      +'<p style="font-size:12px;color:#999;margin-top:16px">This report was generated from the Fleet Prestart System &mdash; '+todayPerth()+'</p>'
+      +'<button onclick="window.print()" style="margin-top:16px;padding:12px 24px;background:#BA7517;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:.06em">PRINT / SAVE AS PDF</button>'
+      +'</body></html>';
+
+    var w = window.open('','_blank');
+    w.document.write(html);
+    w.document.close();
   }
 
   // ── SVG CHART ──────────────────────────────────────────
